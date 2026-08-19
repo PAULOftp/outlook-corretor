@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Corretor IA — add-in do Outlook</title>
+<style>
+  :root { --fg:#1b1b1b; --muted:#5c5c5c; --line:#e3e3e3; --accent:#0f6cbd; --soft:#f6f8fa; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 40px 20px;
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    color: var(--fg); line-height: 1.6; background: #fff;
+  }
+  main { max-width: 640px; margin: 0 auto; }
+  h1 { font-size: 26px; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 28px; }
+  h2 { font-size: 16px; margin: 32px 0 10px; }
+  ol, ul { padding-left: 20px; }
+  li { margin: 6px 0; }
+  code {
+    background: var(--soft); border: 1px solid var(--line); border-radius: 4px;
+    padding: 1px 5px; font-size: 13px; word-break: break-all;
+  }
+  a { color: var(--accent); }
+  .status {
+    border: 1px solid var(--line); border-radius: 6px; background: var(--soft);
+    padding: 14px 16px; margin: 24px 0;
+  }
+  .ok { color: #0e700e; font-weight: 600; }
+  table { border-collapse: collapse; width: 100%; margin-top: 8px; font-size: 14px; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 600; }
+  footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line);
+           color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Corretor IA</h1>
+<p class="sub">Add-in do Outlook que revê e corrige o texto dos emails em português europeu, sem sair do email.</p>
+
+<div class="status">
+  <span class="ok">✓ Alojamento ativo.</span>
+  Esta página é a raiz do site. O painel do add-in vive em
+  <a href="taskpane.html">taskpane.html</a> e é aberto pelo próprio Outlook —
+  fora do Outlook aparece sem ligação à caixa de correio, o que é normal.
+</div>
+
+<h2>Instalar</h2>
+<ol>
+  <li>Abrir <a href="https://aka.ms/olksideload">aka.ms/olksideload</a> num separador novo</li>
+  <li><b>Os meus suplementos</b> → descer até <b>Suplementos personalizados</b></li>
+  <li><b>Adicionar um suplemento personalizado → Adicionar a partir de ficheiro</b></li>
+  <li>Escolher o <code>manifest.xml</code> deste projeto</li>
+</ol>
+<p>Se a secção <b>Suplementos personalizados</b> não existir, a organização bloqueia
+a instalação pelos utilizadores — nesse caso é o administrador de TI que publica o manifesto.</p>
+
+<h2>Chave de API</h2>
+<p>Nas <b>Definições</b> do painel. Gratuitas, sem cartão:</p>
+<table>
+  <tr><th>Fornecedor</th><th>Onde obter a chave</th></tr>
+  <tr><td>Google Gemini <em>(recomendado)</em></td><td><a href="https://aistudio.google.com/apikey">aistudio.google.com/apikey</a></td></tr>
+  <tr><td>Groq</td><td><a href="https://console.groq.com/keys">console.groq.com/keys</a></td></tr>
+  <tr><td>OpenRouter</td><td><a href="https://openrouter.ai/keys">openrouter.ai/keys</a> (modelos <code>:free</code>)</td></tr>
+</table>
+<p>OpenAI e Anthropic também estão disponíveis, mas exigem cartão.</p>
+
+<h2>Como se usa</h2>
+<ul>
+  <li><b>Com texto selecionado</b> — só esse trecho é corrigido e substituído. Modo recomendado: não toca na assinatura nem no histórico da conversa.</li>
+  <li><b>Sem seleção</b> — usa o corpo todo do email, exceto a assinatura configurada.</li>
+  <li>O resultado aparece no painel e só entra no email ao clicar em <b>Substituir no email</b>.</li>
+</ul>
+
+<h2>Privacidade</h2>
+<p>A chave fica guardada nas definições do perfil do Outlook e é enviada diretamente
+do painel para o fornecdor. Este repositório contém apenas o código do
+painel — nenhuma chave e nenhum dado de correio.</p>
+
+<footer>
+  <a href="https://github.com/PAULOftp/outlook-corretor">Código no GitHub</a>
+</footer>
+
+</main>
+</body>
+</html>
