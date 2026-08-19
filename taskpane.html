@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Corretor IA</title>
+<script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1b1b1b;
+    --muted: #616161;
+    --line: #e1e1e1;
+    --accent: #0f6cbd;
+    --accent-hover: #115ea3;
+    --soft: #f5f5f5;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 12px;
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    font-size: 13px;
+    color: var(--fg);
+    background: var(--bg);
+  }
+  h1 { font-size: 15px; margin: 0 0 2px; }
+  .sub { color: var(--muted); font-size: 11px; margin: 0 0 12px; }
+  label { display: block; font-weight: 600; margin: 10px 0 4px; font-size: 12px; }
+  select, input[type=text], input[type=password], textarea {
+    width: 100%; padding: 6px 8px; border: 1px solid var(--line);
+    border-radius: 4px; font: inherit; background: #fff; color: var(--fg);
+  }
+  textarea { resize: vertical; }
+  button {
+    font: inherit; border-radius: 4px; cursor: pointer; padding: 8px 12px;
+    border: 1px solid transparent;
+  }
+  .primary { background: var(--accent); color: #fff; width: 100%; font-weight: 600; }
+  .primary:hover:not(:disabled) { background: var(--accent-hover); }
+  .primary:disabled { background: #c7c7c7; cursor: default; }
+  .row { display: flex; gap: 8px; margin-top: 8px; }
+  .row button { flex: 1; background: var(--soft); border-color: var(--line); color: var(--fg); }
+  .row button:hover:not(:disabled) { background: #ebebeb; }
+  .row button:disabled { color: #a0a0a0; cursor: default; }
+  #result {
+    margin-top: 12px; border: 1px solid var(--line); border-radius: 4px;
+    padding: 10px; background: var(--soft); white-space: pre-wrap;
+    max-height: 320px; overflow-y: auto; line-height: 1.45;
+  }
+  .status { margin-top: 10px; font-size: 12px; color: var(--muted); min-height: 16px; }
+  .status.err { color: #b10e1c; }
+  .status.ok { color: #0e700e; }
+  details { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 10px; }
+  summary { cursor: pointer; font-weight: 600; font-size: 12px; color: var(--muted); }
+  .hint { font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.4; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+
+<h1>Corretor IA</h1>
+<p class="sub">Corrige o texto selecionado. Sem seleção, usa o email todo.</p>
+
+<label for="mode">O que fazer</label>
+<select id="mode">
+  <option value="corrigir">Corrigir ortografia e gramática</option>
+  <option value="melhorar">Corrigir e melhorar a escrita</option>
+  <option value="formal">Tornar mais formal / profissional</option>
+  <option value="simples">Tornar mais claro e direto</option>
+  <option value="encurtar">Encurtar</option>
+  <option value="en">Traduzir para inglês</option>
+  <option value="pt">Traduzir para português (PT)</option>
+  <option value="custom">Instrução personalizada…</option>
+</select>
+
+<div id="customWrap" class="hidden">
+  <label for="customPrompt">Instrução</label>
+  <textarea id="customPrompt" rows="2" placeholder="Ex.: reescreve num tom mais amigável"></textarea>
+</div>
+
+<div style="margin-top:12px">
+  <button id="run" class="primary">Processar</button>
+</div>
+
+<div id="status" class="status"></div>
+
+<div id="result" class="hidden"></div>
+
+<div class="row hidden" id="actions">
+  <button id="apply">Substituir no email</button>
+  <button id="copy">Copiar</button>
+</div>
+
+<details id="settings">
+  <summary>Definições</summary>
+
+  <label for="provider">Fornecedor</label>
+  <select id="provider">
+    <option value="openai">OpenAI</option>
+    <option value="anthropic">Anthropic (Claude)</option>
+  </select>
+
+  <label for="apiKey">Chave de API</label>
+  <input type="password" id="apiKey" placeholder="sk-…" autocomplete="off">
+  <div class="hint">Guardada apenas na sua caixa de correio (roaming settings). Ver nota de segurança no README.</div>
+
+  <label for="model">Modelo</label>
+  <input type="text" id="model" placeholder="gpt-4.1-mini">
+
+  <label for="signature">Assinatura a preservar (opcional)</label>
+  <input type="text" id="signature" placeholder="Ex.: Cumprimentos, Paulo">
+  <div class="hint">Se preencher, o texto a partir desta linha é ignorado quando corrige o email inteiro.</div>
+
+  <div style="margin-top:12px">
+    <button id="save" class="primary">Guardar definições</button>
+  </div>
+</details>
+
+<script src="taskpane.js"></script>
+</body>
+</html>
