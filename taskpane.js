@@ -5,7 +5,7 @@ var settings = null;
 var lastSource = null; // { kind: "selection" | "body", tail: string }
 
 var DEFAULT_MODEL = {
-  google: "gemini-2.5-flash",
+  google: "gemini-3.6-flash",
   groq: "llama-3.3-70b-versatile",
   openrouter: "meta-llama/llama-3.3-70b-instruct:free",
   openai: "gpt-4.1-mini",
@@ -62,6 +62,8 @@ Office.onReady(function (info) {
     save: function (cb) { Office.context.roamingSettings.saveAsync(cb); }
   };
 
+  migrarModeloAntigo();
+
   el("provider").value = settings.get("provider") || "google";
   el("apiKey").value = settings.get("apiKey") || "";
   el("model").value = settings.get("model") || DEFAULT_MODEL[el("provider").value];
@@ -85,6 +87,16 @@ Office.onReady(function (info) {
 });
 
 function el(id) { return document.getElementById(id); }
+
+/* Modelos descontinuados guardados nas definicoes: substitui pelo atual. */
+function migrarModeloAntigo() {
+  var m = settings.get("model");
+  if (!m) return;
+  var obsoleto = /^(gemini-(1\.|2\.)|models\/gemini-(1\.|2\.))/.test(m);
+  if (!obsoleto) return;
+  settings.set("model", DEFAULT_MODEL.google);
+  settings.save(function () {});
+}
 
 function setStatus(msg, cls) {
   var s = el("status");
@@ -165,7 +177,7 @@ function callApi(prompt) {
     payload = {
       system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
       contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.2, thinkingConfig: { thinkingBudget: 0 } }
+      generationConfig: { temperature: 0.2 }
     };
     pick = function (d) {
       var c = (d.candidates || [])[0];
