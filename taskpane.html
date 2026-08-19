@@ -60,7 +60,7 @@
 <body>
 
 <h1>Corretor IA</h1>
-<p class="sub">Corrige o texto selecionado. Sem seleção, usa o email todo.</p>
+<p class="sub">Corrige e substitui automaticamente. Assinatura e aviso legal ficam intocados. Ctrl+Z anula.</p>
 
 <label for="mode">O que fazer</label>
 <select id="mode">
@@ -88,7 +88,6 @@
 <div id="result" class="hidden"></div>
 
 <div class="row hidden" id="actions">
-  <button id="apply">Substituir no email</button>
   <button id="copy">Copiar</button>
 </div>
 
@@ -115,8 +114,10 @@
   <input type="text" id="model" placeholder="gemini-3.6-flash">
 
   <label for="signature">Assinatura a preservar (opcional)</label>
-  <input type="text" id="signature" placeholder="Ex.: Cumprimentos, Paulo">
-  <div class="hint">Se preencher, o texto a partir desta linha é ignorado quando corrige o email inteiro.</div>
+  <input type="text" id="signature" placeholder="deteção automática">
+  <div class="hint">A assinatura, o aviso legal e o histórico da conversa são detetados
+  automaticamente e nunca são alterados. Só preencha aqui se a deteção falhar — o texto a
+  partir da linha que indicar fica intocado.</div>
 
   <div style="margin-top:12px">
     <button id="save" class="primary">Guardar definições</button>

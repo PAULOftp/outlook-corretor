@@ -48,8 +48,35 @@ var SYSTEM_PROMPT =
   "FORMATO DA RESPOSTA: devolves EXCLUSIVAMENTE o texto resultante — sem introduções, " +
   "sem comentários, sem aspas à volta, sem marcadores de código. Preservas as quebras de " +
   "linha e a estrutura de parágrafos do original. Não inventas conteúdo novo nem " +
-  "acrescentas saudações ou despedidas que não existam. Se o texto já estiver correto, " +
-  "devolve-o inalterado.";
+  "acrescentas saudações ou despedidas que não existam. NÃO REMOVES nenhuma frase, linha " +
+  "nem informação do original — todas as frases têm de aparecer no resultado. Se o texto " +
+  "já estiver correto, devolve-o inalterado.";
+
+/* Marcadores que indicam o inicio da assinatura, aviso legal ou historico
+   da conversa. Tudo a partir do primeiro marcador encontrado fica INTOCADO. */
+var MARCADORES_FIM = [
+  /^[ \t]*--[ \t]*$/m,
+  /^[ \t]*_{5,}[ \t]*$/m,
+  /^[ \t]*-{5,}[ \t]*(mensagem original|original message|forwarded message)/im,
+  /^[ \t]*(com os |com |os )?(meus |nossos )?(melhores )?cumprimentos\b/im,
+  /^[ \t]*(atenciosamente|com estima|melhores saudacoes|melhores saudações)\b/im,
+  /^[ \t]*(best regards|kind regards|regards|sincerely|yours (faithfully|sincerely))\b/im,
+  /^[ \t]*aviso legal\b/im,
+  /^[ \t]*(disclaimer|confidencialidade|privileged and confidential)\b/im,
+  /^[ \t]*esta (mensagem|comunicação) é confidencial\b/im,
+  /^[ \t]*(de|from|remetente):[ \t]*\S+/im,
+  /^[ \t]*(enviada?|sent|em)[ \t]*:[ \t]*\S+/im
+];
+
+/* Devolve o indice onde comeca a assinatura, ou -1 se nao encontrar. */
+function inicioDaAssinatura(texto) {
+  var melhor = -1;
+  for (var i = 0; i < MARCADORES_FIM.length; i++) {
+    var m = MARCADORES_FIM[i].exec(texto);
+    if (m && m.index > 0 && (melhor === -1 || m.index < melhor)) melhor = m.index;
+  }
+  return melhor;
+}
 
 /* ---------- arranque ---------- */
 
@@ -82,7 +109,6 @@ Office.onReady(function (info) {
   };
   el("save").onclick = saveSettings;
   el("run").onclick = run;
-  el("apply").onclick = applyResult;
   el("copy").onclick = copyResult;
 });
 
@@ -138,14 +164,25 @@ function getSourceText() {
           return;
         }
         var full = b.value || "";
+
+        /* 1) marcador definido pelo utilizador, se existir */
+        var corte = -1;
         var sig = (settings.get("signature") || "").trim();
-        var head = full, tail = "";
-        if (sig) {
-          var i = full.indexOf(sig);
-          if (i > -1) { head = full.slice(0, i); tail = full.slice(i); }
-        }
+        if (sig) corte = full.indexOf(sig);
+
+        /* 2) senao, deteta automaticamente assinatura / aviso legal / historico */
+        if (corte < 1) corte = inicioDaAssinatura(full);
+
+        var head = corte > 0 ? full.slice(0, corte) : full;
+        var tail = corte > 0 ? full.slice(corte) : "";
+
+        /* preserva as linhas em branco entre o texto e a assinatura */
+        var sep = (head.match(/\s*$/) || [""])[0];
+        if (sep) head = head.slice(0, head.length - sep.length);
+        if (!sep) sep = "\n\n";
+
         if (!head.trim()) { reject(new Error("O email está vazio.")); return; }
-        lastSource = { kind: "body", tail: tail };
+        lastSource = { kind: "body", tail: tail, sep: sep };
         resolve(head);
       });
     });
@@ -261,7 +298,7 @@ function run() {
       el("result").textContent = out;
       el("result").classList.remove("hidden");
       el("actions").classList.remove("hidden");
-      setStatus("Pronto. Reveja e substitua se concordar.", "ok");
+      applyResult();          /* substitui logo, sem perguntar */
     })
     .catch(function (e) {
       setStatus(e.message, "err");
@@ -275,7 +312,7 @@ function applyResult() {
 
   function done(r) {
     if (r.status === Office.AsyncResultStatus.Succeeded) {
-      setStatus("Texto substituído no email.", "ok");
+      setStatus("Substituído no email. Ctrl+Z anula.", "ok");
     } else {
       setStatus("Não foi possível substituir: " + r.error.message, "err");
     }
@@ -284,7 +321,8 @@ function applyResult() {
   if (lastSource && lastSource.kind === "selection") {
     item.setSelectedDataAsync(text, { coercionType: Office.CoercionType.Text }, done);
   } else {
-    var full = text + (lastSource && lastSource.tail ? "\n" + lastSource.tail : "");
+    var full = text + (lastSource && lastSource.tail
+      ? (lastSource.sep || "\n\n") + lastSource.tail : "");
     item.body.setAsync(full, { coercionType: Office.CoercionType.Text }, done);
   }
 }
