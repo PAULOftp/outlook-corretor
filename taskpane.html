@@ -60,7 +60,8 @@
 <body>
 
 <h1>Corretor IA</h1>
-<p class="sub">Corrige e substitui automaticamente. Assinatura e aviso legal ficam intocados. Ctrl+Z anula.</p>
+<p class="sub"><b>Selecione o texto que escreveu</b> e carregue em Processar. Só a seleção é
+alterada — assinatura, aviso legal e mensagem citada nunca são tocados. Ctrl+Z anula.</p>
 
 <label for="mode">O que fazer</label>
 <select id="mode">
@@ -115,9 +116,8 @@
 
   <label for="signature">Assinatura a preservar (opcional)</label>
   <input type="text" id="signature" placeholder="deteção automática">
-  <div class="hint">A assinatura, o aviso legal e o histórico da conversa são detetados
-  automaticamente e nunca são alterados. Só preencha aqui se a deteção falhar — o texto a
-  partir da linha que indicar fica intocado.</div>
+  <div class="hint">Rede de segurança: se a seleção apanhar por engano a assinatura, ela é
+  detetada e devolvida intacta. Só preencha aqui se a deteção automática falhar.</div>
 
   <div style="margin-top:12px">
     <button id="save" class="primary">Guardar definições</button>

@@ -151,40 +151,39 @@ function getSourceText() {
   return new Promise(function (resolve, reject) {
     var item = Office.context.mailbox.item;
 
+    /* SO trabalhamos sobre a selecao. Nunca reescrevemos o corpo do email,
+       para nao destruir a assinatura HTML, os logotipos, o aviso legal
+       nem a mensagem citada. */
     item.getSelectedDataAsync(Office.CoercionType.Text, function (res) {
-      var sel = (res.status === Office.AsyncResultStatus.Succeeded && res.value && res.value.data) || "";
-      if (sel.trim().length > 0) {
-        lastSource = { kind: "selection", tail: "" };
-        resolve(sel);
+      if (res.status !== Office.AsyncResultStatus.Succeeded) {
+        reject(new Error("Não foi possível ler a seleção: " + res.error.message));
         return;
       }
-      item.body.getAsync(Office.CoercionType.Text, function (b) {
-        if (b.status !== Office.AsyncResultStatus.Succeeded) {
-          reject(new Error("Não foi possível ler o email: " + b.error.message));
-          return;
-        }
-        var full = b.value || "";
+      var sel = (res.value && res.value.data) || "";
+      if (!sel.trim()) {
+        reject(new Error("Selecione o texto que escreveu e carregue outra vez em Processar."));
+        return;
+      }
 
-        /* 1) marcador definido pelo utilizador, se existir */
-        var corte = -1;
-        var sig = (settings.get("signature") || "").trim();
-        if (sig) corte = full.indexOf(sig);
+      /* Rede de seguranca: se a selecao apanhou a assinatura (ex.: Ctrl+A),
+         corrigimos so o que vem antes dela e devolvemos o resto intacto. */
+      var corte = -1;
+      var sig = (settings.get("signature") || "").trim();
+      if (sig) corte = sel.indexOf(sig);
+      if (corte < 1) corte = inicioDaAssinatura(sel);
 
-        /* 2) senao, deteta automaticamente assinatura / aviso legal / historico */
-        if (corte < 1) corte = inicioDaAssinatura(full);
+      var head = corte > 0 ? sel.slice(0, corte) : sel;
+      var tail = corte > 0 ? sel.slice(corte) : "";
 
-        var head = corte > 0 ? full.slice(0, corte) : full;
-        var tail = corte > 0 ? full.slice(corte) : "";
+      var sep = (head.match(/\s*$/) || [""])[0];
+      if (sep) head = head.slice(0, head.length - sep.length);
 
-        /* preserva as linhas em branco entre o texto e a assinatura */
-        var sep = (head.match(/\s*$/) || [""])[0];
-        if (sep) head = head.slice(0, head.length - sep.length);
-        if (!sep) sep = "\n\n";
-
-        if (!head.trim()) { reject(new Error("O email está vazio.")); return; }
-        lastSource = { kind: "body", tail: tail, sep: sep };
-        resolve(head);
-      });
+      if (!head.trim()) {
+        reject(new Error("A seleção só tem assinatura. Selecione o texto que escreveu."));
+        return;
+      }
+      lastSource = { kind: "selection", tail: tail, sep: sep || "" };
+      resolve(head);
     });
   });
 }
@@ -290,7 +289,7 @@ function run() {
 
   getSourceText()
     .then(function (text) {
-      setStatus("A processar… (" + (lastSource.kind === "selection" ? "texto selecionado" : "email completo") + ")");
+      setStatus("A processar o texto selecionado…");
       return callApi(buildPrompt(text));
     })
     .then(function (out) {
@@ -318,13 +317,11 @@ function applyResult() {
     }
   }
 
-  if (lastSource && lastSource.kind === "selection") {
-    item.setSelectedDataAsync(text, { coercionType: Office.CoercionType.Text }, done);
-  } else {
-    var full = text + (lastSource && lastSource.tail
-      ? (lastSource.sep || "\n\n") + lastSource.tail : "");
-    item.body.setAsync(full, { coercionType: Office.CoercionType.Text }, done);
-  }
+  /* Substitui APENAS o trecho selecionado. O resto do email — assinatura,
+     logotipos, aviso legal, mensagem citada — nunca é tocado. */
+  var novo = text + (lastSource && lastSource.tail
+    ? (lastSource.sep || "") + lastSource.tail : "");
+  item.setSelectedDataAsync(novo, { coercionType: Office.CoercionType.Text }, done);
 }
 
 function copyResult() {
