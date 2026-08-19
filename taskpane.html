@@ -97,16 +97,22 @@
 
   <label for="provider">Fornecedor</label>
   <select id="provider">
-    <option value="openai">OpenAI</option>
-    <option value="anthropic">Anthropic (Claude)</option>
+    <option value="google">Google Gemini — grátis, sem cartão</option>
+    <option value="groq">Groq — grátis, sem cartão</option>
+    <option value="openrouter">OpenRouter — modelos :free</option>
+    <option value="openai">OpenAI — pago</option>
+    <option value="anthropic">Anthropic (Claude) — pago</option>
   </select>
 
   <label for="apiKey">Chave de API</label>
-  <input type="password" id="apiKey" placeholder="sk-…" autocomplete="off">
-  <div class="hint">Guardada apenas na sua caixa de correio (roaming settings). Ver nota de segurança no README.</div>
+  <input type="password" id="apiKey" placeholder="cole aqui a chave" autocomplete="off">
+  <div class="hint">
+    Gemini: chave grátis em <b>aistudio.google.com/apikey</b> (sem cartão).<br>
+    Guardada apenas na sua caixa de correio. Ver nota de segurança no README.
+  </div>
 
   <label for="model">Modelo</label>
-  <input type="text" id="model" placeholder="gpt-4.1-mini">
+  <input type="text" id="model" placeholder="gemini-2.5-flash">
 
   <label for="signature">Assinatura a preservar (opcional)</label>
   <input type="text" id="signature" placeholder="Ex.: Cumprimentos, Paulo">

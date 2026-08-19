@@ -4,11 +4,17 @@
 var settings = null;
 var lastSource = null; // { kind: "selection" | "body", tail: string }
 
-var DEFAULT_MODEL = { openai: "gpt-4.1-mini", anthropic: "claude-haiku-4-5-20251001" };
+var DEFAULT_MODEL = {
+  google: "gemini-2.5-flash",
+  groq: "llama-3.3-70b-versatile",
+  openrouter: "meta-llama/llama-3.3-70b-instruct:free",
+  openai: "gpt-4.1-mini",
+  anthropic: "claude-haiku-4-5-20251001"
+};
 
 var INSTRUCTIONS = {
-  corrigir: "Corrige erros de ortografia, gramática, acentuação e pontuação. Não alteres o estilo, o tom, o vocabulário nem a estrutura. Mantém a língua original.",
-  melhorar: "Corrige os erros e melhora a fluidez e a clareza da escrita, mantendo o sentido, o tom e a língua original.",
+  corrigir: "Corrige com rigor todos os erros de ortografia, gramática, concordância, regência, acentuação e pontuação, em português europeu. Não alteres o estilo, o tom, o vocabulário nem a estrutura. Se o texto estiver noutra língua, mantém essa língua.",
+  melhorar: "Corrige todos os erros e melhora a fluidez e a clareza da escrita, em português europeu correto e natural, mantendo o sentido e o tom. Se o texto estiver noutra língua, mantém essa língua.",
   formal: "Reescreve num registo mais formal e profissional, adequado a correspondência de trabalho. Mantém o sentido e a língua original.",
   simples: "Reescreve de forma mais clara e direta: frases curtas, sem redundâncias nem palavras desnecessárias. Mantém o sentido e a língua original.",
   encurtar: "Reduz o texto para cerca de metade do comprimento, mantendo toda a informação essencial, o tom e a língua original.",
@@ -17,11 +23,33 @@ var INSTRUCTIONS = {
 };
 
 var SYSTEM_PROMPT =
-  "És um revisor de texto de emails. Devolves EXCLUSIVAMENTE o texto resultante, " +
-  "sem introduções, sem comentários, sem aspas à volta e sem marcadores de código. " +
-  "Preservas as quebras de linha e a estrutura de parágrafos do original. " +
-  "Não inventas conteúdo novo nem acrescentas saudações ou despedidas que não existam. " +
-  "Se o texto já estiver correto, devolve-o inalterado.";
+  "És um revisor profissional de texto de emails, especialista em português europeu.\n\n" +
+  "NORMA LINGUÍSTICA (regra absoluta): quando o texto está em português, o resultado tem de " +
+  "estar em PORTUGUÊS EUROPEU — norma de Portugal, Acordo Ortográfico de 1990 tal como " +
+  "aplicado em Portugal. Nunca devolvas português do Brasil. Em concreto:\n" +
+  "- Gerúndio: usa \"estou a fazer\", \"continuamos a analisar\" (nunca \"estou fazendo\").\n" +
+  "- Colocação dos pronomes: ênclise por defeito (\"envio-lhe\", \"chamo-me\"); próclise só " +
+  "quando há atrator (negação, advérbio, conjunção subordinativa, pronome relativo, " +
+  "interrogativo): \"não lhe envio\", \"já lhe enviei\", \"que me disse\".\n" +
+  "- Vocabulário de Portugal: ecrã, ficheiro, telemóvel, autocarro, comboio, morada, " +
+  "encomenda, equipa, casa de banho, rececionista, utilizador, gestor, faturação, " +
+  "IVA, sítio (web), anexo, reunião, receção.\n" +
+  "- Formas de tratamento de Portugal: \"o Senhor\"/\"a Senhora\", \"V. Exa.\", 3.ª pessoa; " +
+  "nunca \"você\" à brasileira nem \"a gente\" com valor de \"nós\".\n" +
+  "- Ortografia AO90 na variante de Portugal: receção, direção, setor, projeto, atual, " +
+  "objetivo, exceção, adoção, ótimo, contacto, facto, teto, húmido, connosco.\n" +
+  "- Pontuação e espaçamento à portuguesa; datas 19/08/2026; decimais com vírgula; " +
+  "milhares com espaço; € depois do valor (1 250,00 €).\n\n" +
+  "RIGOR GRAMATICAL: corrige concordância nominal e verbal, regência verbal e nominal, " +
+  "uso de crase/contrações (à, às, ao, aos, do, no, pelo), tempos e modos verbais, " +
+  "conjuntivo depois de \"esperar que\", \"caso\", \"embora\", \"para que\", acentuação, " +
+  "hífens, maiúsculas e minúsculas, e pontuação. Elimina pleonasmos e concordâncias " +
+  "erradas do tipo \"houveram\", \"há-de haver muitos\", \"a nível de\".\n\n" +
+  "FORMATO DA RESPOSTA: devolves EXCLUSIVAMENTE o texto resultante — sem introduções, " +
+  "sem comentários, sem aspas à volta, sem marcadores de código. Preservas as quebras de " +
+  "linha e a estrutura de parágrafos do original. Não inventas conteúdo novo nem " +
+  "acrescentas saudações ou despedidas que não existam. Se o texto já estiver correto, " +
+  "devolve-o inalterado.";
 
 /* ---------- arranque ---------- */
 
@@ -34,7 +62,7 @@ Office.onReady(function (info) {
     save: function (cb) { Office.context.roamingSettings.saveAsync(cb); }
   };
 
-  el("provider").value = settings.get("provider") || "openai";
+  el("provider").value = settings.get("provider") || "google";
   el("apiKey").value = settings.get("apiKey") || "";
   el("model").value = settings.get("model") || DEFAULT_MODEL[el("provider").value];
   el("signature").value = settings.get("signature") || "";
@@ -123,14 +151,44 @@ function buildPrompt(text) {
 }
 
 function callApi(prompt) {
-  var provider = settings.get("provider") || "openai";
+  var provider = settings.get("provider") || "google";
   var key = settings.get("apiKey") || "";
   var model = settings.get("model") || DEFAULT_MODEL[provider];
   if (!key) return Promise.reject(new Error("Falta a chave de API (Definições)."));
 
   var url, headers, payload, pick;
 
-  if (provider === "anthropic") {
+  if (provider === "google") {
+    url = "https://generativelanguage.googleapis.com/v1beta/models/" +
+          encodeURIComponent(model) + ":generateContent";
+    headers = { "content-type": "application/json", "x-goog-api-key": key };
+    payload = {
+      system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.2, thinkingConfig: { thinkingBudget: 0 } }
+    };
+    pick = function (d) {
+      var c = (d.candidates || [])[0];
+      if (!c) throw new Error("Resposta sem conteúdo" + (d.promptFeedback ? " (bloqueada pelo filtro)" : "") + ".");
+      return ((c.content && c.content.parts) || [])
+        .filter(function (p) { return p.text && !p.thought; })
+        .map(function (p) { return p.text; }).join("");
+    };
+  } else if (provider === "groq" || provider === "openrouter") {
+    url = provider === "groq"
+      ? "https://api.groq.com/openai/v1/chat/completions"
+      : "https://openrouter.ai/api/v1/chat/completions";
+    headers = { "content-type": "application/json", "authorization": "Bearer " + key };
+    payload = {
+      model: model,
+      temperature: 0.2,
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: prompt }
+      ]
+    };
+    pick = function (d) { return d.choices[0].message.content; };
+  } else if (provider === "anthropic") {
     url = "https://api.anthropic.com/v1/messages";
     headers = {
       "content-type": "application/json",
