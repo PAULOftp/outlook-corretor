@@ -68,6 +68,34 @@ var MARCADORES_FIM = [
   /^[ \t]*(enviada?|sent|em)[ \t]*:[ \t]*\S+/im
 ];
 
+/* Le a fonte usada no trecho selecionado, para o texto corrigido ficar igual. */
+function estiloDaSelecao(html) {
+  var out = "";
+  var f = html.match(/font-family\s*:\s*([^;"'<>]+)/i);
+  var t = html.match(/font-size\s*:\s*([^;"'<>]+)/i);
+  var c = html.match(/(?:^|[;"'\s])color\s*:\s*([^;"'<>]+)/i);
+  if (f) out += "font-family:" + f[1].trim() + ";";
+  if (t) out += "font-size:" + t[1].trim() + ";";
+  if (c) out += "color:" + c[1].trim() + ";";
+  return out;
+}
+
+/* Converte o texto corrigido em HTML: uma linha = um paragrafo.
+   E assim que as mudancas de linha (Enter) do original sao respeitadas. */
+function textoParaHtml(t, estilo) {
+  var st = ' style="margin:0;' + (estilo || "") + '"';
+  var linhas = String(t).replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+  var partes = [];
+  for (var i = 0; i < linhas.length; i++) {
+    var e = linhas[i]
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+    partes.push("<p" + st + ">" + (e.trim() ? e : "<br>") + "</p>");
+  }
+  return partes.join("");
+}
+
 /* Devolve o indice onde comeca a assinatura, ou -1 se nao encontrar. */
 function inicioDaAssinatura(texto) {
   var melhor = -1;
@@ -154,36 +182,35 @@ function getSourceText() {
     /* SO trabalhamos sobre a selecao. Nunca reescrevemos o corpo do email,
        para nao destruir a assinatura HTML, os logotipos, o aviso legal
        nem a mensagem citada. */
-    item.getSelectedDataAsync(Office.CoercionType.Text, function (res) {
-      if (res.status !== Office.AsyncResultStatus.Succeeded) {
-        reject(new Error("Não foi possível ler a seleção: " + res.error.message));
-        return;
-      }
-      var sel = (res.value && res.value.data) || "";
-      if (!sel.trim()) {
-        reject(new Error("Selecione o texto que escreveu e carregue outra vez em Processar."));
-        return;
-      }
+    /* Lemos a selecao em HTML (para herdar a fonte) e em texto (para a API). */
+    item.getSelectedDataAsync(Office.CoercionType.Html, function (rh) {
+      var selHtml = (rh.status === Office.AsyncResultStatus.Succeeded &&
+                     rh.value && rh.value.data) || "";
 
-      /* Rede de seguranca: se a selecao apanhou a assinatura (ex.: Ctrl+A),
-         corrigimos so o que vem antes dela e devolvemos o resto intacto. */
-      var corte = -1;
-      var sig = (settings.get("signature") || "").trim();
-      if (sig) corte = sel.indexOf(sig);
-      if (corte < 1) corte = inicioDaAssinatura(sel);
+      item.getSelectedDataAsync(Office.CoercionType.Text, function (res) {
+        if (res.status !== Office.AsyncResultStatus.Succeeded) {
+          reject(new Error("Não foi possível ler a seleção: " + res.error.message));
+          return;
+        }
+        var sel = (res.value && res.value.data) || "";
+        if (!sel.trim()) {
+          reject(new Error("Selecione o texto que escreveu e carregue outra vez em Processar."));
+          return;
+        }
 
-      var head = corte > 0 ? sel.slice(0, corte) : sel;
-      var tail = corte > 0 ? sel.slice(corte) : "";
+        /* Se a selecao apanhou a assinatura, recusamos — nunca a reescrevemos. */
+        var corte = -1;
+        var sig = (settings.get("signature") || "").trim();
+        if (sig) corte = sel.indexOf(sig);
+        if (corte < 0) corte = inicioDaAssinatura(sel);
+        if (corte > -1) {
+          reject(new Error("A seleção inclui a assinatura ou a mensagem citada. Selecione apenas o texto que escreveu."));
+          return;
+        }
 
-      var sep = (head.match(/\s*$/) || [""])[0];
-      if (sep) head = head.slice(0, head.length - sep.length);
-
-      if (!head.trim()) {
-        reject(new Error("A seleção só tem assinatura. Selecione o texto que escreveu."));
-        return;
-      }
-      lastSource = { kind: "selection", tail: tail, sep: sep || "" };
-      resolve(head);
+        lastSource = { kind: "selection", estilo: estiloDaSelecao(selHtml) };
+        resolve(sel);
+      });
     });
   });
 }
@@ -317,11 +344,11 @@ function applyResult() {
     }
   }
 
-  /* Substitui APENAS o trecho selecionado. O resto do email — assinatura,
-     logotipos, aviso legal, mensagem citada — nunca é tocado. */
-  var novo = text + (lastSource && lastSource.tail
-    ? (lastSource.sep || "") + lastSource.tail : "");
-  item.setSelectedDataAsync(novo, { coercionType: Office.CoercionType.Text }, done);
+  /* Substitui APENAS o trecho selecionado, em HTML, para respeitar as
+     mudanças de linha e manter a fonte. O resto do email — assinatura,
+     logótipos, aviso legal, mensagem citada — nunca é tocado. */
+  var html = textoParaHtml(text, lastSource && lastSource.estilo);
+  item.setSelectedDataAsync(html, { coercionType: Office.CoercionType.Html }, done);
 }
 
 function copyResult() {
