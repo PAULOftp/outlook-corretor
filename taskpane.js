@@ -217,12 +217,59 @@ function getSourceText() {
 
 /* ---------- chamada à API ---------- */
 
+/* Modos que tem de manter exatamente a mesma estrutura de linhas. */
+var MODOS_LINHA_A_LINHA = {
+  corrigir: 1, melhorar: 1, formal: 1, simples: 1, en: 1, pt: 1
+};
+
+var linhasOriginais = null;   /* guardado entre o pedido e a resposta */
+
 function buildPrompt(text) {
   var mode = el("mode").value;
   var instruction = mode === "custom"
     ? (el("customPrompt").value.trim() || INSTRUCTIONS.corrigir)
     : INSTRUCTIONS[mode];
+
+  linhasOriginais = null;
+  var linhas = String(text).replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+  var comTexto = linhas.filter(function (l) { return l.trim(); });
+
+  /* Numeramos as linhas e exigimos a mesma numeracao de volta. Assim as
+     mudancas de linha do original sao respeitadas mesmo que o modelo
+     tenha tendencia a juntar ou dividir paragrafos. */
+  if (MODOS_LINHA_A_LINHA[mode] && comTexto.length > 1) {
+    linhasOriginais = linhas;
+    var numeradas = comTexto.map(function (l, i) { return (i + 1) + "| " + l; }).join("\n");
+    return instruction +
+      "\n\nO texto vem numerado, uma linha por número. Devolve EXATAMENTE o mesmo " +
+      "número de linhas, cada uma com o seu prefixo \"N| \" igual ao original, pela " +
+      "mesma ordem. Não juntes duas linhas numa só, não dividas uma linha em duas e " +
+      "não acrescentes nem removas linhas. Corrige apenas o conteúdo de cada linha.\n\n" +
+      "--- TEXTO ---\n" + numeradas;
+  }
+
   return instruction + "\n\n--- TEXTO ---\n" + text;
+}
+
+/* Remonta a resposta numerada, repondo as linhas em branco do original.
+   Devolve null se a resposta nao vier no formato esperado. */
+function reconstruirLinhas(out) {
+  if (!linhasOriginais) return null;
+  var mapa = {};
+  var re = /^\s*(\d+)\s*\|\s?(.*)$/;
+  var linhasOut = String(out).replace(/\r\n/g, "\n").split("\n");
+  for (var i = 0; i < linhasOut.length; i++) {
+    var m = re.exec(linhasOut[i]);
+    if (m) mapa[m[1]] = m[2];
+  }
+  var n = 0, res = [];
+  for (var j = 0; j < linhasOriginais.length; j++) {
+    if (!linhasOriginais[j].trim()) { res.push(""); continue; }
+    n++;
+    if (mapa[String(n)] === undefined) return null;   /* formato inesperado */
+    res.push(mapa[String(n)]);
+  }
+  return res.join("\n");
 }
 
 function callApi(prompt) {
@@ -321,6 +368,7 @@ function run() {
     })
     .then(function (out) {
       if (!out) throw new Error("A resposta veio vazia.");
+      out = reconstruirLinhas(out) || out;
       el("result").textContent = out;
       el("result").classList.remove("hidden");
       el("actions").classList.remove("hidden");
