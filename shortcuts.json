@@ -1,0 +1,18 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/office-js/extended-manifest.schema.json",
+  "actions": [
+    {
+      "id": "corrigirTextoDireto",
+      "type": "ExecuteFunction",
+      "name": "Corrigir texto selecionado"
+    }
+  ],
+  "shortcuts": [
+    {
+      "action": "corrigirTextoDireto",
+      "key": {
+        "default": "Ctrl+Alt+C"
+      }
+    }
+  ]
+}
