@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Corretor IA</title>
 <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
 <style>
@@ -55,6 +58,12 @@
   summary { cursor: pointer; font-weight: 600; font-size: 12px; color: var(--muted); }
   .hint { font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.4; }
   .hidden { display: none; }
+  .rodape { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--line); }
+  .ligacao {
+    background: none; border: none; padding: 0; color: var(--accent);
+    text-decoration: underline; font-size: 12px; cursor: pointer;
+  }
+  .rodape .hint { margin-top: 2px; }
 </style>
 </head>
 <body>
@@ -124,6 +133,22 @@ alterada — assinatura, aviso legal e mensagem citada nunca são tocados. Ctrl+
   </div>
 </details>
 
-<script src="taskpane.js"></script>
+<div class="rodape">
+  <button type="button" class="ligacao"
+          onclick="location.replace(location.pathname + '?v=' + Date.now())">Recarregar o painel</button>
+  <span class="hint">Use se o painel der erro ou parecer desatualizado.</span>
+</div>
+
+<script>
+  /* Carrega o script com o mesmo carimbo do endereço, para o Outlook
+     não reutilizar uma versão em cache quando se carrega em Recarregar. */
+  (function () {
+    var v = "";
+    try { v = new URLSearchParams(location.search).get("v") || ""; } catch (e) {}
+    var s = document.createElement("script");
+    s.src = "taskpane.js" + (v ? "?v=" + encodeURIComponent(v) : "");
+    document.body.appendChild(s);
+  })();
+</script>
 </body>
 </html>
