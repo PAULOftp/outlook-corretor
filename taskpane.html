@@ -145,9 +145,15 @@ alterada — assinatura, aviso legal e mensagem citada nunca são tocados. Ctrl+
   (function () {
     var v = "";
     try { v = new URLSearchParams(location.search).get("v") || ""; } catch (e) {}
-    var s = document.createElement("script");
-    s.src = "taskpane.js" + (v ? "?v=" + encodeURIComponent(v) : "");
-    document.body.appendChild(s);
+    var q = v ? "?v=" + encodeURIComponent(v) : "";
+    var nucleo = document.createElement("script");
+    nucleo.src = "core.js" + q;
+    nucleo.onload = function () {
+      var s = document.createElement("script");
+      s.src = "taskpane.js" + q;
+      document.body.appendChild(s);
+    };
+    document.body.appendChild(nucleo);
   })();
 </script>
 </body>
