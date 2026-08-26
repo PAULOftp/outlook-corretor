@@ -287,7 +287,14 @@ function callApi(prompt) {
     payload = {
       system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
       contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.2 }
+      /* thinkingLevel "low" corta bastante o tempo de resposta numa tarefa
+         de revisão, que não precisa de raciocínio longo. Se o modelo não
+         aceitar o parâmetro, repetimos o pedido sem ele (ver adiante). */
+      generationConfig: {
+        temperature: 0.2,
+        maxOutputTokens: 2048,
+        thinkingConfig: { thinkingLevel: "low" }
+      }
     };
     pick = function (d) {
       var c = (d.candidates || [])[0];
@@ -339,16 +346,29 @@ function callApi(prompt) {
     pick = function (d) { return d.choices[0].message.content; };
   }
 
-  return fetch(url, { method: "POST", headers: headers, body: JSON.stringify(payload) })
-    .then(function (r) {
-      return r.text().then(function (t) {
-        if (!r.ok) {
-          var msg = t;
-          try { msg = JSON.parse(t).error.message; } catch (e) {}
-          throw new Error("API " + r.status + ": " + msg);
-        }
-        return pick(JSON.parse(t));
+  function enviar(corpo) {
+    return fetch(url, { method: "POST", headers: headers, body: JSON.stringify(corpo) })
+      .then(function (r) {
+        return r.text().then(function (t) {
+          if (!r.ok) {
+            var msg = t;
+            try { msg = JSON.parse(t).error.message; } catch (e) {}
+            throw new Error("API " + r.status + ": " + msg);
+          }
+          return pick(JSON.parse(t));
+        });
       });
+  }
+
+  return enviar(payload)
+    .catch(function (e) {
+      /* Se o modelo não conhecer o thinkingConfig, repete sem ele. */
+      var temThinking = payload.generationConfig && payload.generationConfig.thinkingConfig;
+      if (temThinking && /thinking|unknown name|invalid json payload|not supported/i.test(e.message)) {
+        delete payload.generationConfig.thinkingConfig;
+        return enviar(payload);
+      }
+      throw e;
     })
     .then(function (out) { return String(out || "").trim(); });
 }
