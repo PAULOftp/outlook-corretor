@@ -14,6 +14,7 @@ Rotas:
   GET  /api/ms/mail         -> e-mails Office 365 (Microsoft Graph, só leitura)
   GET  /api/ms/calendar     -> agenda Outlook (Microsoft Graph, só leitura)
 """
+import base64
 import email
 import html
 import imaplib
@@ -276,7 +277,12 @@ def _text_of(msg):
         if ctype not in ("text/plain", "text/html"):
             continue
         try:
-            payload = part.get_payload(decode=True) or b""
+            if (part.get("Content-Transfer-Encoding") or "").strip().lower() == "base64":
+                # A mensagem pode vir cortada a meio (lemos só 60 KB): descodifica os blocos completos
+                b64 = re.sub(r"[^A-Za-z0-9+/]", "", str(part.get_payload(decode=False) or ""))
+                payload = base64.b64decode(b64[:len(b64) // 4 * 4])
+            else:
+                payload = part.get_payload(decode=True) or b""
         except Exception:
             continue
         cs = part.get_content_charset() or "utf-8"

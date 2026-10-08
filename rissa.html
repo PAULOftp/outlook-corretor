@@ -128,6 +128,101 @@ body.speaking .orb .core{animation:pulse 1.6s ease-in-out infinite}
   .orb{width:160px;height:160px} .orb .core{inset:42px} .orb .ring.s1{inset:24px} .orb .ring.s2{inset:11px}
   .aname{font-size:22px} #botLine{font-size:16px}
 }
+
+/* ================= UPGRADE: módulos ================= */
+.topbar .tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.chip.off{color:var(--err);border-color:rgba(255,85,71,.4)}
+.chip.act{color:#03070d;background:var(--theme);border-color:var(--theme);font-weight:700;cursor:pointer;box-shadow:0 0 14px rgba(0,200,255,.45)}
+.chip[hidden]{display:none}
+.cfg-btn{width:32px;height:32px;font-size:16px}
+.modules{margin-top:26px;border:1px solid var(--line);border-radius:10px;background:var(--panel);overflow:hidden}
+.tabs{display:flex;align-items:stretch;border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:none;font-family:var(--mono);font-size:12px;letter-spacing:.18em;color:var(--muted);background:none;border:0;border-bottom:2px solid transparent;
+  padding:12px 16px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:.2s}
+.tab:hover{color:var(--text)}
+.tab.on{color:var(--theme);border-bottom-color:var(--theme);text-shadow:0 0 10px rgba(0,200,255,.5)}
+.tab .badge{background:var(--theme);color:#03070d;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:700;letter-spacing:0}
+.tab .badge[hidden]{display:none}
+.tabs .spacer{flex:1}
+.tabs .tbtn{flex:none;align-self:center;margin:0 8px;font-family:var(--mono);font-size:11px;letter-spacing:.15em;color:var(--theme);
+  background:rgba(0,200,255,.08);border:1px solid var(--line);border-radius:4px;padding:6px 10px;cursor:pointer;white-space:nowrap}
+.tabs .tbtn:hover{background:rgba(0,200,255,.18)}
+.mpanel{display:none;padding:14px 16px 18px;min-height:180px}
+.mpanel.on{display:block;animation:rise .45s ease both}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.mhead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.mhead .meta{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.08em}
+.mhead .icon-btn{width:30px;height:30px}
+.mhead .icon-btn svg{width:15px;height:15px}
+.notice{border:1px dashed rgba(255,85,71,.45);color:#ffb4ad;border-radius:6px;padding:10px 12px;font-family:var(--mono);font-size:12px;letter-spacing:.06em;margin:6px 0}
+.notice.soft{border-color:var(--line);color:var(--muted)}
+.dayhead{font-family:var(--mono);font-size:11px;letter-spacing:.22em;color:var(--muted);margin:16px 0 6px;display:flex;align-items:center;gap:8px}
+.dayhead::after{content:"";flex:1;height:1px;background:var(--line)}
+.dayhead.today{color:var(--theme);font-size:13px;margin-top:4px}
+.ev{display:flex;gap:12px;align-items:flex-start;padding:8px 10px;border-left:3px solid var(--c,var(--theme));background:rgba(255,255,255,.02);border-radius:0 6px 6px 0;margin:5px 0}
+.ev .t{font-family:var(--mono);font-size:13px;color:var(--text);min-width:78px}
+.ev .t.allday{font-size:10px;letter-spacing:.15em;color:var(--muted);padding-top:2px}
+.ev .b{flex:1;min-width:0}
+.ev .ti{font-size:14px;overflow-wrap:anywhere}
+.ev .sub{font-size:11px;color:var(--muted);margin-top:2px}
+.ev.next{background:rgba(0,200,255,.08);box-shadow:inset 0 0 0 1px rgba(0,200,255,.25)}
+.ev.past{opacity:.45}
+.cd{font-family:var(--mono);font-size:11px;color:#03070d;background:var(--theme);border-radius:3px;padding:1px 6px;margin-left:6px;white-space:nowrap}
+.dot2{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--c,var(--theme));box-shadow:0 0 6px var(--c,var(--theme));flex:none}
+.bucket{margin:4px 0 14px}
+.bucket h4{margin:0 0 6px;font-family:var(--mono);font-size:12px;letter-spacing:.2em;color:var(--muted);display:flex;align-items:center;gap:8px;cursor:default}
+.bucket.acao h4{color:var(--theme);text-shadow:0 0 10px rgba(0,200,255,.4)}
+.bucket.ruido h4{cursor:pointer}
+.bucket .n{font-size:11px;border:1px solid var(--line);border-radius:10px;padding:0 7px}
+.bucket.collapsed .list{display:none}
+.mail{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-radius:6px;cursor:pointer;border:1px solid transparent}
+.mail:hover{border-color:var(--line);background:rgba(255,255,255,.02)}
+.bucket.acao .mail{background:rgba(0,200,255,.05);border-color:rgba(0,200,255,.18)}
+.mail .dot2{margin-top:6px}
+.mail .b{flex:1;min-width:0}
+.mail .top{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted)}
+.mail .from{color:#b8cfdd;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mail .res{font-size:14px;margin-top:2px;overflow-wrap:anywhere}
+.mail .from.unread{color:var(--theme)}
+.mail .orig{display:none;font-size:12px;color:var(--muted);margin-top:6px;padding-top:6px;border-top:1px dashed var(--line);overflow-wrap:anywhere}
+.mail.open .orig{display:block}
+.tag{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--muted);border:1px solid var(--line);border-radius:3px;padding:1px 5px}
+.news-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.ncol h4{margin:0 0 6px;font-family:var(--mono);font-size:12px;letter-spacing:.18em;color:var(--theme)}
+.nitem{display:block;padding:7px 0;border-bottom:1px solid rgba(0,200,255,.08);color:var(--text);text-decoration:none}
+.nitem:hover .nt{color:var(--theme)}
+.nitem .nt{font-size:14px;line-height:1.35}
+.nitem .ns{font-size:11px;color:var(--muted);margin-top:2px}
+.digest-box{border:1px solid var(--line);border-radius:8px;padding:14px 16px;background:linear-gradient(135deg,rgba(0,200,255,.06),rgba(139,92,246,.06));
+  font-size:16px;line-height:1.6;white-space:pre-wrap}
+.digest-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.wx{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:12px;color:var(--text);margin-bottom:10px}
+.wx b{color:var(--theme);font-size:16px}
+
+/* Definições */
+.card.wide{max-width:760px;max-height:90vh;overflow-y:auto}
+.cfg-sec{border-top:1px solid var(--line);padding-top:12px;margin-top:6px}
+.cfg-sec h4{margin:0 0 8px;font-family:var(--mono);font-size:12px;letter-spacing:.2em;color:var(--theme)}
+.howto{font-size:12px;color:var(--muted);line-height:1.55;margin:4px 0 8px;padding-left:18px}
+.howto code,.warn code{color:var(--text)}
+.warn{font-size:12px;color:#ffd58a;border-left:2px solid #fbbf24;padding:4px 10px;margin:6px 0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.rowl{display:grid;grid-template-columns:1.1fr 2fr 1fr 44px 34px;gap:6px;align-items:center;margin:5px 0}
+.rowl input[type=color],.grid2 input[type=color]{padding:0;height:36px;cursor:pointer}
+.rowl .x{background:none;border:1px solid rgba(255,85,71,.4);color:var(--err);border-radius:4px;height:34px;cursor:pointer}
+.chk{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);cursor:pointer;font-family:var(--sans);letter-spacing:0}
+.chk input{width:auto}
+.devcode{font-family:var(--mono);font-size:26px;letter-spacing:.3em;color:var(--theme);text-align:center;padding:8px;border:1px dashed var(--theme);border-radius:6px;margin:6px 0}
+.msstate{font-family:var(--mono);font-size:12px;margin:6px 0}
+.msstate.ok{color:var(--ok)} .msstate.err{color:var(--err)}
+.card a{color:var(--theme)}
+@media (max-width:600px){
+  .grid2{grid-template-columns:1fr}
+  .rowl{grid-template-columns:1fr 1fr 44px 34px}
+  .rowl .wide{grid-column:1/-1;order:-1}
+  .news-grid{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
@@ -153,7 +248,12 @@ body.speaking .orb .core{animation:pulse 1.6s ease-in-out infinite}
     <label class="keybox"><span>API KEY</span>
       <input id="apiKey" type="password" placeholder="Cola aqui a chave do Gemini (AIza...) ou da Anthropic (sk-ant-...)" autocomplete="off" spellcheck="false">
     </label>
-    <span class="chip" id="keyChip">SEM CHAVE</span>
+    <span class="tools">
+      <span class="chip" id="keyChip">SEM CHAVE</span>
+      <span class="chip" id="antChip" title="Antena local">ANTENA …</span>
+      <span class="chip act" id="actChip" hidden title="E-mails a pedir ação">⚡ 0 AÇÃO</span>
+      <button class="icon-btn cfg-btn" id="cfgBtn" type="button" title="Definições">⚙</button>
+    </span>
   </div>
 
   <div class="hero">
@@ -176,6 +276,21 @@ body.speaking .orb .core{animation:pulse 1.6s ease-in-out infinite}
       </button>
     </div>
   </div>
+
+  <section class="modules" id="modules">
+    <div class="tabs">
+      <button class="tab on" data-tab="agenda" type="button">AGENDA</button>
+      <button class="tab" data-tab="emails" type="button">E-MAILS <span class="badge" id="tabBadge" hidden>0</span></button>
+      <button class="tab" data-tab="noticias" type="button">NOTÍCIAS</button>
+      <button class="tab" data-tab="digest" type="button">DIGEST</button>
+      <span class="spacer"></span>
+      <button class="tbtn" id="digestBtn" type="button">☀ DIGEST</button>
+    </div>
+    <div class="mpanel on" id="p-agenda"></div>
+    <div class="mpanel" id="p-emails"></div>
+    <div class="mpanel" id="p-noticias"></div>
+    <div class="mpanel" id="p-digest"></div>
+  </section>
 
   <section class="brain">
     <div class="brain-head">
@@ -200,6 +315,9 @@ body.speaking .orb .core{animation:pulse 1.6s ease-in-out infinite}
     </div>
   </section>
 </div>
+
+<!-- DEFINIÇÕES -->
+<div class="modal" id="cfgModal"><div class="card wide" id="cfgCard"></div></div>
 
 <!-- EDITOR -->
 <div class="modal" id="modal">
@@ -842,6 +960,1108 @@ $("#btnActivate").addEventListener("click", () => {
   if (SR) { wantListening = true; updateMic(); safeStart(); }
   say("Sistemas online. Estou a ouvir, " + CONFIG.address + ".");
 });
+</script>
+<script>
+/* =====================================================================
+   UPGRADE · AGENDA · E-MAILS · NOTÍCIAS · MORNING DIGEST
+   Envolve (não reescreve) processCommand e buildSystem da Parte 1 e
+   reutiliza a mesma chave, o mesmo CONFIG.model e o mesmo motor de voz.
+   ===================================================================== */
+(() => {
+"use strict";
+
+/* ---------------- Configuração persistente ---------------- */
+const VIA_FILE = location.protocol === "file:";
+const ANT = (location.protocol.startsWith("http") && location.port === "8080") ? "" : "http://127.0.0.1:8080";
+const jget = (k, d) => { try { const v = JSON.parse(LS.get(k)); return v == null ? d : v; } catch (e) { return d; } };
+const jset = (k, v) => LS.set(k, JSON.stringify(v));
+
+const DEF = {
+  calendars: { dias: 7, tz: "Europe/Lisbon", outlook: { ativo: true, nome: "Trabalho", cor: "#3b82f6" }, ics: [] },
+  emails: {
+    quantidade: 20, intervaloMin: 15,
+    m365: { ativo: true, apelido: "Trabalho", cor: "#3b82f6", clientId: "", tenant: "" },
+    imap: [{ email: "", senha: "", apelido: "Pessoal", cor: "#10b981", host: "imap.gmail.com" }],
+    prioridade: "Dá prioridade a AÇÃO em e-mails de clientes e oportunidades comerciais (propostas, pedidos de orçamento, objeções, encomendas) e da faculdade (prazos de trabalhos e avaliações)."
+  },
+  news: {
+    n: 5, intervaloMin: 30, hl: "pt-PT", gl: "PT", ceid: "PT:pt-150",
+    temas: [
+      { nome: "Indústria 4.0", q: "\"Indústria 4.0\" OR \"software industrial\"" },
+      { nome: "Economia portuguesa", q: "economia portuguesa" },
+      { nome: "Inteligência artificial", q: "inteligência artificial" },
+      { nome: "Vendas B2B", q: "vendas B2B" },
+      { nome: "Avanca / Estarreja", q: "Avanca OR Estarreja" }
+    ]
+  },
+  digest: { cidade: "Avanca", clima: true, tamanho: "curto", auto: true, voz: true,
+            conteudo: { agenda: true, emails: true, noticias: true, foco: true } },
+  engine: { nivel: "equilibrado", economia: true }
+};
+function loadCfg(key, def) {
+  const v = jget(key, null);
+  return (v && typeof v === "object") ? Object.assign(structuredClone(def), v) : structuredClone(def);
+}
+const cfg = {
+  cal: loadCfg("jarvis_calendars", DEF.calendars),
+  mail: loadCfg("jarvis_emails", DEF.emails),
+  news: loadCfg("jarvis_news_cfg", DEF.news),
+  dig: loadCfg("jarvis_digest_cfg", DEF.digest),
+  eng: loadCfg("jarvis_engine", DEF.engine)
+};
+
+/* ---------------- Motor: escreve no mesmo CONFIG da Parte 1 ---------------- */
+const LEVELS = {
+  economico:   { label: "ECONÓMICO",   claude: "claude-haiku-5-5",  gemini: ["gemini-flash-lite-latest", "gemini-2.5-flash-lite"], nota: "Gemini Flash-Lite · grátis, maior quota" },
+  equilibrado: { label: "EQUILIBRADO", claude: "claude-sonnet-5-5", gemini: ["gemini-flash-latest", "gemini-2.5-flash"],           nota: "Gemini Flash · grátis" },
+  maximo:      { label: "MÁXIMO",      claude: "claude-opus-5-5",   gemini: ["gemini-pro-latest", "gemini-2.5-pro"],               nota: "Gemini Pro · PAGO, fora do plano gratuito" }
+};
+function applyEngine() {
+  const L = LEVELS[cfg.eng.nivel] || LEVELS.equilibrado;
+  CONFIG.model = L.claude;
+  CONFIG.geminiModels = L.gemini.slice();
+}
+applyEngine();
+
+/* ---------------- Utilitários de tempo e texto ---------------- */
+const pad = n => String(n).padStart(2, "0");
+const hm = d => pad(d.getHours()) + ":" + pad(d.getMinutes());
+const hmSpeak = d => d.getHours() + "h" + (d.getMinutes() ? pad(d.getMinutes()) : "");
+const dayKey = d => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+const startOfDay = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+const WD = ["DOMINGO", "SEGUNDA", "TERÇA", "QUARTA", "QUINTA", "SEXTA", "SÁBADO"];
+const WDS = ["domingo", "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado"];
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const addr = CONFIG.address;
+const plural = (n, s, p) => n + " " + (n === 1 ? s : p);
+function dayDiff(d) { return Math.round((startOfDay(d) - startOfDay(new Date())) / 864e5); }
+function dayLabel(d) {
+  const x = dayDiff(d);
+  if (x === 0) return "HOJE";
+  if (x === 1) return "AMANHÃ";
+  return WD[d.getDay()] + " · " + pad(d.getDate()) + "/" + pad(d.getMonth() + 1);
+}
+function daySpeak(d) { const x = dayDiff(d); return x === 0 ? "hoje" : x === 1 ? "amanhã" : WDS[d.getDay()]; }
+function dur(ms) {
+  const m = Math.max(0, Math.round(ms / 60000)), h = Math.floor(m / 60), r = m % 60;
+  if (h >= 24) { const dd = Math.floor(h / 24); return dd + (dd === 1 ? " dia" : " dias"); }
+  return h && r ? h + "h " + r + "min" : h ? h + "h" : r + "min";
+}
+function durSpeak(ms) {
+  const m = Math.max(0, Math.round(ms / 60000)), h = Math.floor(m / 60), r = m % 60;
+  if (h >= 24) { const dd = Math.floor(h / 24); return plural(dd, "dia", "dias"); }
+  if (h && r) return plural(h, "hora", "horas") + " e " + plural(r, "minuto", "minutos");
+  return h ? plural(h, "hora", "horas") : plural(r, "minuto", "minutos");
+}
+function ago(d) {
+  if (!d || isNaN(d)) return "";
+  const s = (Date.now() - d) / 1000;
+  if (s < 60) return "agora";
+  if (s < 3600) return "há " + Math.floor(s / 60) + " min";
+  if (s < 86400) return "há " + Math.floor(s / 3600) + " h";
+  const n = Math.floor(s / 86400);
+  return n === 1 ? "ontem" : "há " + n + " dias";
+}
+const hasEl = id => document.getElementById(id);
+
+/* ---------------- Voz longa (frases em sequência; evita o corte do Chrome aos ~15 s) ---------------- */
+let stopLong = false;
+async function sayLong(text) {
+  const chunks = [];
+  for (const s of cleanForSpeech(text).split(/(?<=[.!?;:])\s+/)) {
+    if (chunks.length && (chunks[chunks.length - 1] + " " + s).length < 220) chunks[chunks.length - 1] += " " + s;
+    else if (s) chunks.push(s);
+  }
+  stopLong = false;
+  busy = true;
+  setBot(text);
+  setState("speaking");
+  for (const c of chunks) {
+    if (stopLong) break;
+    await speak(c);
+  }
+  busy = false;
+  ignoreUntil = Date.now() + 700;
+  activeUntil = Date.now() + CONV_MS;
+  setState(idleState());
+  safeStart();
+}
+$("#stopBtn").addEventListener("click", () => { stopLong = true; });
+$("#orb").addEventListener("click", () => { if (uiState === "speaking") stopLong = true; });
+
+/* ---------------- Antena ---------------- */
+class AntOff extends Error {}
+let antOnline = null, msState = null;
+function offMsg() {
+  return VIA_FILE
+    ? "ANTENA INDISPONÍVEL — abre a PauloIA pelo iniciar-rissa.bat (endereço localhost:8080), não pelo ficheiro."
+    : "ANTENA OFFLINE — corre o iniciar-rissa.bat (ou: python antena.py) e mantém a janela aberta.";
+}
+function refreshAntChip() {
+  const c = $("#antChip");
+  c.textContent = antOnline ? "ANTENA ON" : antOnline === false ? "ANTENA OFF" : "ANTENA …";
+  c.classList.toggle("ok", !!antOnline);
+  c.classList.toggle("off", antOnline === false);
+  c.title = antOnline ? "Antena local ligada" : offMsg();
+}
+async function antFetch(path, opts = {}) {
+  if (VIA_FILE) { antOnline = false; refreshAntChip(); throw new AntOff(); }
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), opts.timeout || 30000);
+  try {
+    const res = await fetch(ANT + path, { method: opts.method || "GET", headers: opts.headers, body: opts.body, signal: ctrl.signal });
+    antOnline = true; refreshAntChip();
+    return res;
+  } catch (e) {
+    if (e.name === "AbortError") throw new Error("a antena demorou demasiado a responder");
+    antOnline = false; refreshAntChip();
+    throw new AntOff();
+  } finally { clearTimeout(t); }
+}
+async function antJson(path, opts) {
+  const r = await antFetch(path, opts);
+  let j = {};
+  try { j = await r.json(); } catch (e) {}
+  if (!r.ok) throw new Error(j.erro || ("erro " + r.status));
+  return j;
+}
+async function ping() {
+  try { const j = await antJson("/api/ping", { timeout: 5000 }); msState = j.ms; } catch (e) {}
+}
+
+/* ---------------- Cérebro: chamada única (mesma chave e mesmo modelo da Parte 1) ---------------- */
+async function llmOnce(system, user, maxTokens, wantJson) {
+  const key = getKey();
+  if (!key) throw new Error("sem chave");
+  if (provider(key) === "claude") {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true", "content-type": "application/json" },
+      body: JSON.stringify({ model: CONFIG.model, max_tokens: maxTokens, system, messages: [{ role: "user", content: user }] })
+    });
+    if (!res.ok) throw new Error("API " + res.status + " " + await errDetail(res));
+    const d = await res.json();
+    return (d.content || []).filter(b => b.type === "text").map(b => b.text).join("\n").trim();
+  }
+  const gc = { maxOutputTokens: Math.max(2048, maxTokens * 3), temperature: wantJson ? 0.2 : 0.8 };
+  if (wantJson) gc.responseMimeType = "application/json";
+  const body = JSON.stringify({ systemInstruction: { parts: [{ text: system }] }, contents: [{ role: "user", parts: [{ text: user }] }], generationConfig: gc });
+  let last = "";
+  for (const model of CONFIG.geminiModels) {
+    const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent", {
+      method: "POST", headers: { "x-goog-api-key": key, "content-type": "application/json" }, body
+    });
+    if (res.ok) {
+      const d = await res.json();
+      const parts = (d && d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts) || [];
+      return parts.filter(p => p.text && !p.thought).map(p => p.text).join("\n").trim();
+    }
+    last = "API " + res.status + " " + await errDetail(res);
+    if (res.status !== 404) break;
+  }
+  throw new Error(last);
+}
+
+/* =====================================================================
+   PARSER ICS
+   ===================================================================== */
+const WIN_TZ = {
+  "GMT Standard Time": "Europe/London", "Greenwich Standard Time": "Atlantic/Reykjavik", "W. Europe Standard Time": "Europe/Berlin",
+  "Romance Standard Time": "Europe/Paris", "Central Europe Standard Time": "Europe/Budapest", "Central European Standard Time": "Europe/Warsaw",
+  "Azores Standard Time": "Atlantic/Azores", "E. South America Standard Time": "America/Sao_Paulo", "Eastern Standard Time": "America/New_York",
+  "Central Standard Time": "America/Chicago", "Pacific Standard Time": "America/Los_Angeles", "UTC": "UTC", "Coordinated Universal Time": "UTC"
+};
+const tzOk = {}, dtfCache = {};
+function validTz(tz) {
+  if (!tz) return null;
+  tz = tz.replace(/^"|"$/g, "").replace(/^\//, "");
+  tz = WIN_TZ[tz] || tz;
+  if (!(tz in tzOk)) { try { new Intl.DateTimeFormat("en-US", { timeZone: tz }); tzOk[tz] = true; } catch (e) { tzOk[tz] = false; } }
+  return tzOk[tz] ? tz : null;
+}
+function tzOffset(ms, tz) {
+  const f = dtfCache[tz] || (dtfCache[tz] = new Intl.DateTimeFormat("en-US", { timeZone: tz, hourCycle: "h23",
+    year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" }));
+  const p = {};
+  for (const x of f.formatToParts(new Date(ms))) p[x.type] = x.value;
+  return Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour % 24, +p.minute, +p.second) - Math.floor(ms / 1000) * 1000;
+}
+function wallToDate(c, zone) {
+  if (zone === "utc") return new Date(Date.UTC(c.y, c.m - 1, c.d, c.h, c.mi, c.s));
+  if (!zone) return new Date(c.y, c.m - 1, c.d, c.h, c.mi, c.s);
+  const guess = Date.UTC(c.y, c.m - 1, c.d, c.h, c.mi, c.s);
+  let ms = guess - tzOffset(guess, zone);
+  ms = guess - tzOffset(ms, zone); // segunda passagem acerta a mudança de hora
+  return new Date(ms);
+}
+function parseDT(val, params) {
+  const m = (val || "").trim().match(/^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})?(Z)?)?$/);
+  if (!m) return null;
+  const c = { y: +m[1], m: +m[2], d: +m[3], h: +(m[4] || 0), mi: +(m[5] || 0), s: +(m[6] || 0) };
+  if (!m[4] || (params && params.VALUE === "DATE")) return { allDay: true, c, zone: null };
+  return { allDay: false, c, zone: m[7] ? "utc" : validTz(params && params.TZID) };
+}
+function dtToDate(dt) { return dt.allDay ? new Date(dt.c.y, dt.c.m - 1, dt.c.d) : wallToDate(dt.c, dt.zone); }
+function colonIndex(s) {
+  let q = false;
+  for (let i = 0; i < s.length; i++) { const ch = s[i]; if (ch === '"') q = !q; else if (ch === ":" && !q) return i; }
+  return -1;
+}
+const unesc = v => v.replace(/\\n/gi, " ").replace(/\\([,;\\])/g, "$1").trim();
+function parseDuration(v) {
+  const m = (v || "").match(/^([+-])?P(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/);
+  if (!m) return 0;
+  return ((+m[2] || 0) * 7 * 864e5 + (+m[3] || 0) * 864e5 + (+m[4] || 0) * 36e5 + (+m[5] || 0) * 6e4 + (+m[6] || 0) * 1e3) * (m[1] === "-" ? -1 : 1);
+}
+function parseICS(text) {
+  const lines = text.replace(/\r\n[ \t]/g, "").replace(/\n[ \t]/g, "").split(/\r?\n/); // unfolding
+  const evs = [];
+  let cur = null, depth = 0;
+  for (const line of lines) {
+    if (line === "BEGIN:VEVENT") { cur = { exdates: [] }; depth = 0; continue; }
+    if (line === "END:VEVENT") { if (cur) evs.push(cur); cur = null; continue; }
+    if (!cur) continue;
+    if (line.startsWith("BEGIN:")) { depth++; continue; } // VALARM, etc.
+    if (line.startsWith("END:")) { depth--; continue; }
+    if (depth > 0) continue;
+    const i = colonIndex(line);
+    if (i < 0) continue;
+    const parts = line.slice(0, i).split(";"), value = line.slice(i + 1), name = parts[0].toUpperCase(), params = {};
+    for (const p of parts.slice(1)) { const e = p.indexOf("="); if (e > 0) params[p.slice(0, e).toUpperCase()] = p.slice(e + 1).replace(/^"|"$/g, ""); }
+    if (name === "EXDATE") { for (const v of value.split(",")) { const d = parseDT(v, params); if (d) cur.exdates.push(d); } }
+    else cur[name] = { value, params };
+  }
+  return evs;
+}
+const WDMAP = { SU: 0, MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6 };
+function ymd(y, m, d) { const t = new Date(Date.UTC(y, m - 1, d)); return [t.getUTCFullYear(), t.getUTCMonth() + 1, t.getUTCDate()]; }
+function dim(y, m) { return new Date(Date.UTC(y, m, 0)).getUTCDate(); }
+function expandRRule(rule, ds, winStart, winEnd) {
+  const r = {};
+  for (const p of rule.split(";")) { const [k, v] = p.split("="); if (k && v) r[k.toUpperCase()] = v; }
+  const freq = r.FREQ, interval = Math.max(1, parseInt(r.INTERVAL || "1", 10) || 1);
+  const count = r.COUNT ? parseInt(r.COUNT, 10) : Infinity;
+  let until = Infinity;
+  if (r.UNTIL) { const u = parseDT(r.UNTIL, {}); if (u) until = u.allDay ? addDays(dtToDate(u), 1).getTime() - 1 : dtToDate(u).getTime(); }
+  const byday = r.BYDAY ? r.BYDAY.split(",").map(s => { const m = s.trim().match(/^([+-]?\d+)?(SU|MO|TU|WE|TH|FR|SA)$/); return m ? { n: m[1] ? parseInt(m[1], 10) : 0, wd: WDMAP[m[2]] } : null; }).filter(Boolean) : null;
+  const bymd = r.BYMONTHDAY ? r.BYMONTHDAY.split(",").map(Number).filter(n => n) : null;
+  const c0 = ds.c, startMs = dtToDate(ds).getTime(), hardEnd = Math.min(until, winEnd.getTime());
+  const out = [];
+  let n = 0, guard = 0;
+  const emit = (y, m, d) => {
+    const t = dtToDate({ allDay: ds.allDay, zone: ds.zone, c: { ...c0, y, m, d } }).getTime();
+    if (t < startMs) return true;
+    if (t > hardEnd) return false;
+    if (++n > count) return false;
+    out.push(new Date(t));
+    return true;
+  };
+  // Sem COUNT, salta direto para perto da janela (eventos antigos com anos de repetições)
+  const skipDays = count === Infinity ? Math.max(0, Math.floor((winStart.getTime() - startMs) / 864e5) - 7) : 0;
+  if (freq === "DAILY") {
+    for (let i = Math.floor(skipDays / interval) * interval; guard++ < 5000; i += interval) {
+      const [y, m, d] = ymd(c0.y, c0.m, c0.d + i);
+      if (!emit(y, m, d)) break;
+    }
+  } else if (freq === "WEEKLY") {
+    const dow0 = new Date(Date.UTC(c0.y, c0.m - 1, c0.d)).getUTCDay(), toMon = (dow0 + 6) % 7;
+    const days = byday && byday.length ? [...new Set(byday.map(b => b.wd))] : [dow0];
+    const offs = days.map(wd => (wd + 6) % 7).sort((a, b) => a - b);
+    const w0 = Math.floor(skipDays / 7 / interval) * interval;
+    outer: for (let w = w0; guard++ < 3000; w += interval) {
+      for (const off of offs) { const [y, m, d] = ymd(c0.y, c0.m, c0.d - toMon + w * 7 + off); if (!emit(y, m, d)) break outer; }
+    }
+  } else if (freq === "MONTHLY") {
+    outer2: for (let k = 0; guard++ < 2400; k += interval) {
+      const [Y, M] = ymd(c0.y, c0.m + k, 1), nd = dim(Y, M);
+      let days = [];
+      if (byday && byday.length) {
+        for (const b of byday) {
+          const all = [];
+          for (let d = 1; d <= nd; d++) if (new Date(Date.UTC(Y, M - 1, d)).getUTCDay() === b.wd) all.push(d);
+          if (b.n > 0) { if (all[b.n - 1]) days.push(all[b.n - 1]); }
+          else if (b.n < 0) { if (all[all.length + b.n]) days.push(all[all.length + b.n]); }
+          else days.push(...all);
+        }
+      } else if (bymd) days = bymd.map(x => x > 0 ? x : nd + x + 1).filter(x => x >= 1 && x <= nd);
+      else if (c0.d <= nd) days = [c0.d];
+      days = [...new Set(days)].sort((a, b) => a - b);
+      for (const d of days) if (!emit(Y, M, d)) break outer2;
+    }
+  } else if (freq === "YEARLY") {
+    for (let k = 0; guard++ < 300; k += interval) {
+      const Y = c0.y + k;
+      if (c0.d <= dim(Y, c0.m) && !emit(Y, c0.m, c0.d)) break;
+    }
+  } // outras frequências: ignoradas sem partir o resto
+  return out;
+}
+function icsEvents(text, winStart, winEnd) {
+  const raw = parseICS(text), out = [], overrides = new Set();
+  for (const e of raw) {
+    if (e["RECURRENCE-ID"] && e.UID) {
+      const r = parseDT(e["RECURRENCE-ID"].value, e["RECURRENCE-ID"].params);
+      if (r) overrides.add(e.UID.value + "|" + dtToDate(r).getTime());
+    }
+  }
+  for (const e of raw) {
+    try {
+      if (!e.DTSTART) continue;
+      if (e.STATUS && /CANCELLED/i.test(e.STATUS.value)) continue;
+      const ds = parseDT(e.DTSTART.value, e.DTSTART.params);
+      if (!ds) continue;
+      const de = e.DTEND ? parseDT(e.DTEND.value, e.DTEND.params) : null;
+      const start = dtToDate(ds);
+      let durMs = de ? dtToDate(de) - start : e.DURATION ? parseDuration(e.DURATION.value) : (ds.allDay ? 864e5 : 0);
+      if (!(durMs >= 0)) durMs = 0;
+      const allDays = ds.allDay ? Math.max(1, Math.round(durMs / 864e5)) : 0;
+      const titulo = unesc(e.SUMMARY ? e.SUMMARY.value : "(sem título)") || "(sem título)";
+      const local = e.LOCATION ? unesc(e.LOCATION.value) : "";
+      const push = s => {
+        const en = ds.allDay ? addDays(s, allDays) : new Date(s.getTime() + durMs);
+        if ((en > winStart && s < winEnd) || (s >= winStart && s < winEnd)) out.push({ titulo, inicio: s, fim: en, diaTodo: ds.allDay, local });
+      };
+      if (e.RRULE && !e["RECURRENCE-ID"]) {
+        const exT = new Set(e.exdates.filter(x => !x.allDay).map(x => dtToDate(x).getTime()));
+        const exD = new Set(e.exdates.filter(x => x.allDay).map(x => dayKey(dtToDate(x))));
+        const uid = e.UID ? e.UID.value : "";
+        for (const occ of expandRRule(e.RRULE.value, ds, winStart, winEnd)) {
+          const t = occ.getTime();
+          if (exT.has(t) || exD.has(dayKey(occ)) || overrides.has(uid + "|" + t)) continue;
+          push(occ);
+        }
+      } else push(start);
+    } catch (err) { console.warn("Evento ICS ignorado", err); }
+  }
+  return out;
+}
+
+/* =====================================================================
+   AGENDA
+   ===================================================================== */
+const AG = { eventos: [], erros: [], offline: false, t: 0 };
+let agendaP = null;
+function graphDate(s) { return new Date(String(s).replace(/(\.\d{3})\d*$/, "$1").replace(/Z?$/, "Z")); }
+function fromGraph(e, cal) {
+  let s = graphDate(e.inicio), en = graphDate(e.fim);
+  if (e.diaTodo) { // datas "flutuantes": meio-dia em UTC devolve sempre o dia certo
+    const a = new Date(s.getTime() + 12 * 36e5), b = new Date(en.getTime() + 12 * 36e5);
+    s = new Date(a.getUTCFullYear(), a.getUTCMonth(), a.getUTCDate());
+    en = new Date(b.getUTCFullYear(), b.getUTCMonth(), b.getUTCDate());
+  }
+  return { titulo: e.titulo, inicio: s, fim: en, diaTodo: e.diaTodo, local: e.local, cal };
+}
+function calCount() { return (cfg.cal.outlook.ativo ? 1 : 0) + cfg.cal.ics.filter(c => c.url).length; }
+function loadAgenda() {
+  if (agendaP) return agendaP;
+  agendaP = (async () => {
+    const w0 = startOfDay(new Date()), w1 = addDays(w0, (+cfg.cal.dias || 0) + 1);
+    const evs = [], errs = [];
+    let off = false;
+    const jobs = [];
+    if (cfg.cal.outlook.ativo) jobs.push((async () => {
+      try {
+        const j = await antJson("/api/ms/calendar?start=" + encodeURIComponent(w0.toISOString()) + "&end=" + encodeURIComponent(w1.toISOString()));
+        for (const e of j.eventos) evs.push(fromGraph(e, { nome: cfg.cal.outlook.nome, cor: cfg.cal.outlook.cor }));
+      } catch (e) { if (e instanceof AntOff) off = true; else errs.push({ nome: cfg.cal.outlook.nome, erro: e.message }); }
+    })());
+    for (const c of cfg.cal.ics) if (c.url) jobs.push((async () => {
+      try {
+        const url = c.url.trim().replace(/^webcal:/i, "https:");
+        const r = await antFetch("/proxy?url=" + encodeURIComponent(url));
+        if (!r.ok) { let j = {}; try { j = await r.json(); } catch (e) {} throw new Error(j.erro || "a fonte respondeu " + r.status); }
+        const txt = await r.text();
+        if (!/BEGIN:VCALENDAR/.test(txt)) throw new Error("o link não devolveu uma agenda iCal");
+        for (const e of icsEvents(txt, w0, w1)) evs.push({ ...e, cal: { nome: c.nome || "Agenda", cor: c.cor || "#8b7cff" } });
+      } catch (e) { if (e instanceof AntOff) off = true; else errs.push({ nome: c.nome || "Agenda", erro: e.message }); }
+    })());
+    await Promise.all(jobs);
+    evs.sort((a, b) => a.inicio - b.inicio);
+    Object.assign(AG, { eventos: evs, erros: errs, offline: off, t: Date.now() });
+    renderAgenda();
+  })().finally(() => { agendaP = null; });
+  return agendaP;
+}
+async function ensureAgenda() { if (!AG.t || Date.now() - AG.t > 5 * 60000) await loadAgenda(); }
+function eventsByDay() {
+  const map = new Map(), w0 = startOfDay(new Date()), days = (+cfg.cal.dias || 0) + 1;
+  for (let i = 0; i < days; i++) map.set(dayKey(addDays(w0, i)), []);
+  for (const e of AG.eventos) {
+    if (e.diaTodo) { for (let d = startOfDay(e.inicio); d < e.fim; d = addDays(d, 1)) { const k = dayKey(d); if (map.has(k)) map.get(k).push(e); } }
+    else {
+      const k = dayKey(e.inicio);
+      if (map.has(k)) map.get(k).push(e);
+      else if (e.inicio < w0 && e.fim > w0) map.get(dayKey(w0)).push(e);
+    }
+  }
+  for (const l of map.values()) l.sort((a, b) => (b.diaTodo - a.diaTodo) || (a.inicio - b.inicio));
+  return map;
+}
+function nextEvent() {
+  const now = Date.now();
+  return AG.eventos.filter(e => !e.diaTodo && e.fim.getTime() > now).sort((a, b) => a.inicio - b.inicio)[0] || null;
+}
+function cdText(e) {
+  const now = Date.now();
+  return e.inicio <= now ? "a decorrer · termina em " + dur(e.fim - now) : "em " + dur(e.inicio - now);
+}
+function notice(msg, soft) { return '<div class="notice' + (soft ? " soft" : "") + '">' + esc(msg) + "</div>"; }
+function refreshBtn(id, title) {
+  return '<button class="icon-btn" id="' + id + '" type="button" title="' + title + '"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg></button>';
+}
+function renderAgenda() {
+  const p = $("#p-agenda");
+  let h = '<div class="mhead"><span class="meta">' + (AG.t ? "ATUALIZADO " + hm(new Date(AG.t)) + " · " : "") + plural(calCount(), "AGENDA", "AGENDAS") + "</span>" + refreshBtn("agRefresh", "Atualizar agenda") + "</div>";
+  if (!calCount()) h += notice("Ainda não há agendas. Abre ⚙ e liga o Microsoft 365 ou cola um link iCal.", true);
+  if (AG.offline) h += notice(offMsg());
+  for (const e of AG.erros) h += notice(e.nome + ": " + e.erro, /não está ligado/.test(e.erro));
+  if (!AG.t && calCount()) h += notice("A carregar a agenda…", true);
+  if (AG.t) {
+    const ne = nextEvent(), now = Date.now();
+    let i = 0;
+    for (const [k, list] of eventsByDay()) {
+      const d = new Date(k + "T12:00:00");
+      const isToday = i++ === 0;
+      if (!isToday && !list.length) continue;
+      h += '<div class="dayhead' + (isToday ? " today" : "") + '">' + dayLabel(d) + "</div>";
+      if (!list.length) { h += '<div class="ev" style="--c:var(--muted)"><span class="t allday">LIVRE</span><div class="b"><div class="ti">Agenda livre hoje</div></div></div>'; continue; }
+      for (const e of list) {
+        const isNext = e === ne, past = isToday && !e.diaTodo && e.fim.getTime() < now;
+        const sub = [e.cal.nome, e.local, e.diaTodo ? "" : "até " + hm(e.fim)].filter(Boolean).map(esc).join(" · ");
+        h += '<div class="ev' + (isNext ? " next" : "") + (past ? " past" : "") + '" style="--c:' + esc(e.cal.cor) + '">' +
+          '<span class="t' + (e.diaTodo ? " allday" : "") + '">' + (e.diaTodo ? "DIA TODO" : hm(e.inicio)) + "</span>" +
+          '<div class="b"><div class="ti"><span class="dot2" style="--c:' + esc(e.cal.cor) + '"></span> ' + esc(e.titulo) +
+          (isNext ? '<span class="cd" id="agCd">' + cdText(e) + "</span>" : "") + '</div><div class="sub">' + sub + "</div></div></div>";
+      }
+    }
+  }
+  p.innerHTML = h;
+  $("#agRefresh").onclick = () => loadAgenda();
+}
+setInterval(() => { const el = hasEl("agCd"), ne = nextEvent(); if (el && ne) el.textContent = cdText(ne); }, 30000);
+setInterval(() => { if (AG.t) renderAgenda(); }, 5 * 60000);
+setInterval(() => loadAgenda(), 10 * 60000);
+
+/* =====================================================================
+   E-MAILS
+   ===================================================================== */
+const EM = { lista: [], erros: [], offline: false, t: 0 };
+const TRI_KEY = "jarvis_email_triage";
+let triage = jget(TRI_KEY, {});
+let emailsP = null;
+const mailAccounts = () => (cfg.mail.m365.ativo ? 1 : 0) + cfg.mail.imap.filter(a => a.email && a.senha).length;
+function heur(m) {
+  const raw = (m.assunto || "") + " " + (m.trecho || "");
+  const s = norm((m.email || "") + " " + (m.remetente || "") + " " + raw);
+  let balde = "info";
+  if (/no ?reply|newsletter|unsubscribe|cancelar (a )?subscricao|anular subscricao|promo|desconto|oferta|campanha|marketing|notification|notificacao|webinar|digest/.test(s)) balde = "ruido";
+  else if (/\?/.test(raw) || /prazo|urgente|fatura|factura|reuniao|por favor|proposta|orcamento|encomenda|preciso|podes|consegue|confirma|aprovar|deadline|ate amanha|ate dia|resposta/.test(s)) balde = "acao";
+  return { balde, resumo: m.assunto, local: true };
+}
+async function aiTriage(chunk) {
+  const sys = "Classificas e-mails do " + addr + " (Diretor Comercial na FTP Porto, que vende software a empresas; também estudante de licenciatura) em três baldes:\n" +
+    "acao: pede resposta, tarefa, decisão ou tem prazo; alguém está à espera dele. " + (cfg.mail.prioridade || "") + "\n" +
+    "info: vale a pena saber mas não exige nada (confirmações, recibos, atualizações).\n" +
+    "ruido: promoções, newsletters, notificações automáticas.\n" +
+    'Responde APENAS com um array JSON, um item por e-mail: [{"i":número,"balde":"acao"|"info"|"ruido","resumo":"uma frase curta em português europeu"}]. Sem texto extra.';
+  const user = JSON.stringify(chunk.map((m, i) => ({ i, de: m.remetente + (m.email ? " <" + m.email + ">" : ""), assunto: m.assunto, trecho: (m.trecho || "").slice(0, 200) })));
+  const txt = await llmOnce(sys, user, 1500, true);
+  const a = txt.indexOf("["), b = txt.lastIndexOf("]");
+  if (a < 0 || b < a) throw new Error("resposta da IA sem JSON");
+  return JSON.parse(txt.slice(a, b + 1));
+}
+async function triageNew(list) {
+  if (getKey()) {
+    for (let i = 0; i < list.length; i += 30) { // UMA chamada por lote
+      const chunk = list.slice(i, i + 30);
+      try {
+        for (const r of await aiTriage(chunk)) {
+          const m = chunk[r.i];
+          if (m && ["acao", "info", "ruido"].includes(r.balde)) triage[m.id] = { balde: r.balde, resumo: String(r.resumo || m.assunto).slice(0, 220), t: Date.now() };
+        }
+      } catch (e) { console.warn("Triagem IA falhou; uso a triagem local", e); }
+    }
+  }
+  for (const m of list) if (!triage[m.id] || triage[m.id].local) triage[m.id] = { ...heur(m), t: Date.now() };
+  const ids = Object.keys(triage);
+  if (ids.length > 600) ids.sort((a, b) => triage[a].t - triage[b].t).slice(0, ids.length - 600).forEach(k => delete triage[k]);
+  jset(TRI_KEY, triage);
+}
+function loadEmails(force) {
+  if (emailsP) return emailsP;
+  if (!force && EM.t && Date.now() - EM.t < 5 * 60000) return Promise.resolve();
+  emailsP = (async () => {
+    const q = +cfg.mail.quantidade || 20, all = [], errs = [];
+    let off = false;
+    const add = (acc, cor) => j => { for (const m of j.emails) all.push({ ...m, conta: acc, cor, data: m.data ? new Date(m.data) : null }); };
+    const fail = nome => e => { if (e instanceof AntOff) off = true; else errs.push({ nome, erro: e.message }); };
+    const jobs = [];
+    const ms = cfg.mail.m365;
+    if (ms.ativo) jobs.push(antJson("/api/ms/mail?top=" + q).then(add(ms.apelido, ms.cor)).catch(fail(ms.apelido)));
+    for (const a of cfg.mail.imap) {
+      if (!a.email || !a.senha) continue;
+      jobs.push(antJson("/api/imap", { method: "POST", timeout: 60000, headers: { "content-type": "application/json" },
+        body: JSON.stringify({ host: a.host || "imap.gmail.com", usuario: a.email.trim(), senhaApp: a.senha.replace(/\s+/g, ""), quantidade: q }) })
+        .then(add(a.apelido || a.email, a.cor)).catch(fail(a.apelido || a.email)));
+    }
+    await Promise.all(jobs);
+    const seen = new Set(), lista = [];
+    for (const m of all) { if (!m.id || seen.has(m.id)) continue; seen.add(m.id); lista.push(m); }
+    const novos = lista.filter(m => !triage[m.id] || (triage[m.id].local && getKey()));
+    if (novos.length) await triageNew(novos);
+    for (const m of lista) { const t = triage[m.id] || heur(m); m.balde = t.balde; m.resumo = t.resumo || m.assunto; m.local = !!t.local; }
+    lista.sort((a, b) => (b.data || 0) - (a.data || 0));
+    Object.assign(EM, { lista, erros: errs, offline: off, t: Date.now() });
+    renderEmails();
+  })().finally(() => { emailsP = null; });
+  return emailsP;
+}
+const byBucket = b => EM.lista.filter(m => m.balde === b);
+function updateBadges() {
+  const n = byBucket("acao").length;
+  const tb = $("#tabBadge"), ac = $("#actChip");
+  tb.textContent = n; tb.hidden = !n;
+  ac.textContent = "⚡ " + n + " AÇÃO"; ac.hidden = !n;
+}
+let ruidoOpen = false;
+function renderEmails() {
+  const p = $("#p-emails");
+  const anyLocal = EM.lista.some(m => m.local);
+  let h = '<div class="mhead"><span class="meta">' + (EM.t ? EM.lista.length + " ANALISADOS · TRIAGEM " + (anyLocal ? "LOCAL" : "IA") + " · " + hm(new Date(EM.t)) : "") + "</span>" + refreshBtn("emRefresh", "Atualizar e-mails") + "</div>";
+  if (!mailAccounts()) h += notice("Ainda não há contas. Abre ⚙ e liga o Microsoft 365 e/ou o Gmail.", true);
+  if (EM.offline) h += notice(offMsg());
+  for (const e of EM.erros) h += notice(e.nome + ": " + e.erro, /não está ligado/.test(e.erro));
+  if (!EM.t && mailAccounts()) h += notice("A carregar os e-mails…", true);
+  const sec = (b, titulo) => {
+    const list = byBucket(b);
+    if (!EM.t) return "";
+    let s = '<div class="bucket ' + b + (b === "ruido" && !ruidoOpen ? " collapsed" : "") + '"><h4' + (b === "ruido" ? ' id="ruidoH"' : "") + ">" + titulo + ' <span class="n">' + list.length + "</span>" + (b === "ruido" ? (ruidoOpen ? " ▾" : " ▸") : "") + '</h4><div class="list">';
+    if (!list.length) s += '<div class="mail" style="cursor:default"><div class="b"><div class="res" style="color:var(--muted)">' + (b === "acao" ? "Nada à tua espera. 👌" : "—") + "</div></div></div>";
+    for (const m of list) {
+      s += '<div class="mail" data-id="' + esc(m.id) + '"><span class="dot2" style="--c:' + esc(m.cor) + '"></span><div class="b">' +
+        '<div class="top"><span class="from' + (m.lido ? "" : " unread") + '">' + esc(m.remetente || m.email) + (m.lido ? "" : ' <span class="tag">NOVO</span>') + '</span><span>' + esc(ago(m.data)) + ' <span class="tag">' + esc(m.conta) + "</span></span></div>" +
+        '<div class="res">' + esc(m.resumo) + "</div>" +
+        '<div class="orig"><b>' + esc(m.assunto) + "</b><br>" + esc(m.trecho || "") + "</div></div></div>";
+    }
+    return s + "</div></div>";
+  };
+  h += sec("acao", "⚡ AÇÃO") + sec("info", "INFO") + sec("ruido", "RUÍDO");
+  p.innerHTML = h;
+  $("#emRefresh").onclick = () => loadEmails(true);
+  const rh = hasEl("ruidoH");
+  if (rh) rh.onclick = () => { ruidoOpen = !ruidoOpen; renderEmails(); };
+  p.querySelectorAll(".mail[data-id]").forEach(el => el.onclick = () => el.classList.toggle("open"));
+  updateBadges();
+}
+$("#actChip").addEventListener("click", () => switchTab("emails"));
+let mailTimer = null;
+function scheduleMail() { clearInterval(mailTimer); mailTimer = setInterval(() => loadEmails(true), Math.max(5, +cfg.mail.intervaloMin || 15) * 60000); }
+
+/* =====================================================================
+   NOTÍCIAS
+   ===================================================================== */
+const NEWS_KEY = "jarvis_news_cache";
+const NW = { data: {}, t: 0, offline: false, erros: [] };
+let newsP = null;
+const newsSig = () => JSON.stringify([cfg.news.temas, cfg.news.n, cfg.news.hl]);
+function rssUrl(q) {
+  return "https://news.google.com/rss/search?q=" + encodeURIComponent(q) + "&hl=" + cfg.news.hl + "&gl=" + cfg.news.gl + "&ceid=" + encodeURIComponent(cfg.news.ceid);
+}
+async function fetchTopic(q, n) {
+  const r = await antFetch("/proxy?url=" + encodeURIComponent(rssUrl(q)));
+  if (!r.ok) throw new Error("Google News respondeu " + r.status);
+  const doc = new DOMParser().parseFromString(await r.text(), "text/xml");
+  return [...doc.querySelectorAll("item")].slice(0, n).map(it => {
+    const fonte = (it.querySelector("source") || {}).textContent || "";
+    let titulo = (it.querySelector("title") || {}).textContent || "";
+    if (fonte && titulo.endsWith(" - " + fonte)) titulo = titulo.slice(0, -(fonte.length + 3)); // limpa o sufixo " - Fonte"
+    return { titulo: titulo.trim(), link: (it.querySelector("link") || {}).textContent || "", data: (it.querySelector("pubDate") || {}).textContent || "", fonte };
+  });
+}
+function loadNews(force) {
+  if (newsP) return newsP;
+  const cache = jget(NEWS_KEY, null);
+  if (!force && cache && cache.sig === newsSig() && Date.now() - cache.t < (+cfg.news.intervaloMin || 30) * 60000) {
+    Object.assign(NW, { data: cache.data, t: cache.t, offline: false, erros: [] });
+    renderNews();
+    return Promise.resolve();
+  }
+  newsP = (async () => {
+    const data = {}, errs = [];
+    let off = false;
+    await Promise.all(cfg.news.temas.map(async t => {
+      try { data[t.nome] = await fetchTopic(t.q || t.nome, +cfg.news.n || 5); }
+      catch (e) { if (e instanceof AntOff) off = true; else errs.push({ nome: t.nome, erro: e.message }); }
+    }));
+    if (Object.keys(data).length) {
+      Object.assign(NW, { data, t: Date.now(), offline: off, erros: errs });
+      jset(NEWS_KEY, { t: NW.t, sig: newsSig(), data });
+    } else {
+      Object.assign(NW, cache ? { data: cache.data, t: cache.t } : {}, { offline: off, erros: errs });
+    }
+    renderNews();
+  })().finally(() => { newsP = null; });
+  return newsP;
+}
+function renderNews() {
+  const p = $("#p-noticias");
+  let h = '<div class="mhead"><span class="meta">' + (NW.t ? "GOOGLE NEWS · " + cfg.news.gl + " · " + hm(new Date(NW.t)) : "") + "</span>" + refreshBtn("nwRefresh", "Atualizar notícias") + "</div>";
+  if (NW.offline) h += notice(offMsg());
+  for (const e of NW.erros) h += notice(e.nome + ": " + e.erro);
+  if (!NW.t && !NW.offline) h += notice("A carregar as notícias…", true);
+  h += '<div class="news-grid">';
+  for (const t of cfg.news.temas) {
+    const items = NW.data[t.nome];
+    if (!items) continue;
+    h += '<div class="ncol"><h4>' + esc(t.nome.toUpperCase()) + "</h4>";
+    if (!items.length) h += '<div class="nitem"><div class="ns">Sem manchetes de momento.</div></div>';
+    for (const it of items) {
+      h += '<a class="nitem" href="' + esc(it.link) + '" target="_blank" rel="noopener noreferrer"><div class="nt">' + esc(it.titulo) + '</div><div class="ns">' +
+        esc([it.fonte, ago(new Date(it.data))].filter(Boolean).join(" · ")) + "</div></a>";
+    }
+    h += "</div>";
+  }
+  p.innerHTML = h + "</div>";
+  $("#nwRefresh").onclick = () => loadNews(true);
+}
+setInterval(() => loadNews(false), 5 * 60000);
+
+/* =====================================================================
+   TEMPO (Open-Meteo, sem chave, direto do browser)
+   ===================================================================== */
+const WMO = c => ({ 0: "céu limpo", 1: "pouco nublado", 2: "parcialmente nublado", 3: "nublado", 45: "nevoeiro", 48: "nevoeiro",
+  51: "chuvisco fraco", 53: "chuvisco", 55: "chuvisco forte", 56: "chuvisco gelado", 57: "chuvisco gelado", 61: "chuva fraca", 63: "chuva",
+  65: "chuva forte", 66: "chuva gelada", 67: "chuva gelada", 71: "neve fraca", 73: "neve", 75: "neve forte", 77: "granizo fino",
+  80: "aguaceiros fracos", 81: "aguaceiros", 82: "aguaceiros fortes", 85: "aguaceiros de neve", 86: "aguaceiros de neve",
+  95: "trovoada", 96: "trovoada com granizo", 99: "trovoada com granizo" }[c] || "tempo variável");
+async function getWeather() {
+  if (!cfg.dig.clima || !cfg.dig.cidade) return null;
+  let geo = jget("jarvis_geo", null);
+  if (!geo || geo.cidade !== cfg.dig.cidade) {
+    const r = await fetch("https://geocoding-api.open-meteo.com/v1/search?count=1&language=pt&format=json&name=" + encodeURIComponent(cfg.dig.cidade));
+    const j = await r.json(), g = j.results && j.results[0];
+    if (!g) return null;
+    geo = { cidade: cfg.dig.cidade, nome: g.name, lat: g.latitude, lon: g.longitude };
+    jset("jarvis_geo", geo);
+  }
+  const r = await fetch("https://api.open-meteo.com/v1/forecast?latitude=" + geo.lat + "&longitude=" + geo.lon +
+    "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&current=temperature_2m&timezone=auto&forecast_days=1");
+  const j = await r.json(), d = j.daily;
+  return { cidade: geo.nome || cfg.dig.cidade, desc: WMO(d.weather_code[0]), max: Math.round(d.temperature_2m_max[0]), min: Math.round(d.temperature_2m_min[0]),
+    chuva: d.precipitation_probability_max ? d.precipitation_probability_max[0] : null, agora: j.current ? Math.round(j.current.temperature_2m) : null };
+}
+
+/* =====================================================================
+   MORNING DIGEST
+   ===================================================================== */
+let DG = jget("jarvis_digest_last", null);
+const todayLong = () => new Date().toLocaleDateString("pt-PT", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+function metas() { return notes.filter(n => n.area === "metas").slice(0, 2); }
+function digestPack(wx) {
+  const c = cfg.dig.conteudo, L = [];
+  L.push("Data: " + todayLong() + ", " + hm(new Date()));
+  if (wx) L.push("Tempo em " + wx.cidade + ": " + wx.desc + ", mínima " + wx.min + "°, máxima " + wx.max + "°" + (wx.chuva != null ? ", probabilidade de chuva " + wx.chuva + "%" : ""));
+  if (c.agenda) {
+    const today = (eventsByDay().get(dayKey(new Date())) || []).slice(0, 15);
+    L.push("Agenda de hoje: " + (!AG.t ? "indisponível" : today.length ? today.map(e => (e.diaTodo ? "dia todo" : hm(e.inicio)) + " · " + e.titulo).join(" | ") : "livre"));
+  }
+  if (c.emails) {
+    const novos = EM.lista.filter(m => m.data && Date.now() - m.data < 864e5).length, acao = byBucket("acao");
+    L.push("E-mails: " + (!EM.t ? "indisponíveis" : novos + " recebidos nas últimas 24 h; a pedir ação (" + acao.length + "): " + (acao.slice(0, 6).map(m => m.remetente + " — " + m.resumo).join(" | ") || "nenhum")));
+  }
+  if (c.noticias && NW.t) L.push("Manchetes: " + cfg.news.temas.filter(t => NW.data[t.nome]).map(t => "[" + t.nome + "] " + NW.data[t.nome].slice(0, 3).map(i => i.titulo).join(" | ")).join(" ; "));
+  if (c.foco) L.push("Metas do " + addr + ": " + metas().map(n => n.title + ": " + n.body).join(" ; "));
+  return L.join("\n");
+}
+function digestSystem() {
+  const words = cfg.dig.tamanho === "medio" ? "150 a 170 palavras (cerca de 1 minuto)" : "75 a 90 palavras (cerca de 30 segundos)";
+  return "És a " + CONFIG.name + ", assistente pessoal de voz do " + addr + ". Personalidade " + CONFIG.persona + ": próxima, bem-disposta, informal, tratas o " + addr + " por tu.\n" +
+    "Escreve o briefing da manhã para ser lido em voz alta: texto corrido e natural em português europeu (nunca do Brasil), sem listas, sem markdown, sem emojis, " + words + ".\n" +
+    "Começa com uma saudação com o dia da semana e a data. Cobre, por esta ordem e só o que vier nos dados: tempo, agenda de hoje (com horas), e-mails que pedem ação, " +
+    "as manchetes mais relevantes (no máximo uma por tema) e termina com UMA frase de foco do dia ligada às metas dele.";
+}
+function digestTemplate(wx) {
+  const c = cfg.dig.conteudo, P = [];
+  P.push("Bom dia, " + addr + "! Hoje é " + todayLong() + ".");
+  if (wx) P.push("Em " + wx.cidade + ", " + wx.desc + ", entre " + wx.min + " e " + wx.max + " graus" + (wx.chuva ? ", com " + wx.chuva + "% de probabilidade de chuva" : "") + ".");
+  if (c.agenda && AG.t) {
+    const t = eventsByDay().get(dayKey(new Date())) || [];
+    P.push(t.length ? "Na agenda tens " + plural(t.length, "compromisso", "compromissos") + ": " + t.slice(0, 6).map(e => e.diaTodo ? e.titulo + ", o dia todo" : "às " + hmSpeak(e.inicio) + ", " + e.titulo).join("; ") + "." : "A agenda de hoje está livre.");
+  }
+  if (c.emails && EM.t) {
+    const a = byBucket("acao");
+    P.push(a.length ? "Tens " + plural(a.length, "e-mail", "e-mails") + " a pedir ação: " + a.slice(0, 4).map(m => m.remetente + ", " + m.resumo).join("; ") + "." : "Nenhum e-mail a pedir ação. Caixa sob controlo.");
+  }
+  if (c.noticias && NW.t) {
+    const hs = cfg.news.temas.filter(t => NW.data[t.nome] && NW.data[t.nome][0]).map(t => t.nome + ": " + NW.data[t.nome][0].titulo);
+    if (hs.length) P.push("Nas notícias. " + hs.join(". ") + ".");
+  }
+  if (c.foco) { const m = metas(); if (m.length) P.push("Foco do dia: cada passo conta para " + m[Math.floor(Math.random() * m.length)].body.replace(/\.$/, "").toLowerCase() + ". Bora!"); }
+  return P.join(" ");
+}
+let digestRunning = false;
+async function runDigest(opts = {}) {
+  if (digestRunning) return;
+  digestRunning = true;
+  switchTab("digest");
+  busy = true;
+  setState("thinking");
+  showStatus("A PREPARAR O DIGEST…", false, 3000);
+  try {
+    await Promise.race([Promise.allSettled([ensureAgenda(), loadEmails(false), loadNews(false)]), sleep(20000)]);
+    const wx = await getWeather().catch(() => null);
+    let texto = "", fonte = "local";
+    if (getKey()) {
+      try { // UMA chamada compacta por digest
+        texto = (await llmOnce(digestSystem(), digestPack(wx), cfg.dig.tamanho === "medio" ? 800 : 500, false)).replace(/\[\[SAVE[\s\S]*?\]\]/g, "").trim();
+        if (texto) fonte = "IA";
+      } catch (e) { console.warn("Digest por IA falhou; uso o modelo local", e); }
+    }
+    if (!texto) texto = digestTemplate(wx);
+    DG = { texto, t: Date.now(), fonte, wx, dia: dayKey(new Date()) };
+    jset("jarvis_digest_last", DG);
+    LS.set("jarvis_last_digest", DG.dia);
+    renderDigest();
+    busy = false;
+    if (cfg.dig.voz && !opts.mudo) await sayLong(texto);
+    else { setBot(texto); setState(idleState()); }
+  } finally { busy = false; digestRunning = false; }
+}
+function renderDigest() {
+  const p = $("#p-digest");
+  let h = '<div class="mhead"><span class="meta">' + (DG ? "GERADO " + (DG.dia === dayKey(new Date()) ? "HOJE" : DG.dia) + " ÀS " + hm(new Date(DG.t)) + " · " + (DG.fonte === "IA" ? "IA" : "MODELO LOCAL") : "MORNING DIGEST") + "</span>" +
+    '<span style="display:flex;gap:6px"><button class="btn" id="dgRun" type="button">▶ GERAR</button>' + (DG ? '<button class="btn ghost" id="dgPlay" type="button">🔊 OUVIR</button>' : "") + "</span></div>";
+  if (DG && DG.wx) h += '<div class="wx"><b>' + DG.wx.max + "°</b> " + esc(DG.wx.cidade.toUpperCase()) + " · " + esc(DG.wx.desc) + " · " + DG.wx.min + "° / " + DG.wx.max + "°" + (DG.wx.chuva != null ? " · chuva " + DG.wx.chuva + "%" : "") + "</div>";
+  h += DG ? '<div class="digest-box">' + esc(DG.texto) + "</div>" : notice('Ainda não há digest. Diz "' + WAKE_DISPLAY + ', bom dia" ou clica ☀ DIGEST.', true);
+  p.innerHTML = h;
+  $("#dgRun").onclick = () => runDigest({});
+  const pl = hasEl("dgPlay");
+  if (pl) pl.onclick = () => { if (!busy) sayLong(DG.texto); };
+}
+$("#digestBtn").addEventListener("click", () => runDigest({}));
+async function waitIdle(max) {
+  const t0 = Date.now();
+  while ((busy || (window.speechSynthesis && speechSynthesis.speaking)) && Date.now() - t0 < max) await sleep(250);
+}
+// Gatilho automático: primeira ativação do dia (o listener da Parte 1 corre antes deste)
+$("#btnActivate").addEventListener("click", () => {
+  if (!cfg.dig.auto || LS.get("jarvis_last_digest") === dayKey(new Date())) return;
+  setTimeout(async () => { await waitIdle(15000); runDigest({ auto: true }); }, 400);
+});
+
+/* =====================================================================
+   COMANDOS DE VOZ LOCAIS (sem gastar API) — envolve o processCommand da Parte 1
+   ===================================================================== */
+async function working(p) { busy = true; setState("thinking"); try { return await p; } finally { busy = false; } }
+function sayToday() {
+  if (AG.offline && !AG.eventos.length) return "A antena está desligada, " + addr + ". Corre o iniciar-rissa.bat para eu ver a agenda.";
+  const evs = eventsByDay().get(dayKey(new Date())) || [];
+  if (!evs.length) return "Hoje tens a agenda livre, " + addr + ". Aproveita!";
+  return "Hoje tens " + plural(evs.length, "compromisso", "compromissos") + ": " + evs.slice(0, 8).map(e => e.diaTodo ? e.titulo + ", o dia todo" : "às " + hmSpeak(e.inicio) + ", " + e.titulo).join("; ") + ".";
+}
+function sayNext() {
+  const e = nextEvent();
+  if (!e) return "Não tens mais nada marcado nos próximos dias, " + addr + ".";
+  if (e.inicio <= Date.now()) return "Estás agora em " + e.titulo + ", que termina daqui a " + durSpeak(e.fim - Date.now()) + ".";
+  return "O próximo é " + e.titulo + ", " + daySpeak(e.inicio) + " às " + hmSpeak(e.inicio) + ", daqui a " + durSpeak(e.inicio - Date.now()) + (e.local ? ", em " + e.local : "") + ".";
+}
+function sayWeek() {
+  const parts = [];
+  let i = 0;
+  for (const [k, list] of eventsByDay()) {
+    if (i++ === 0 || !list.length) continue;
+    const d = new Date(k + "T12:00:00"), first = list.find(e => !e.diaTodo) || list[0];
+    parts.push(daySpeak(d) + ", " + plural(list.length, "compromisso", "compromissos") + (first.diaTodo ? ", incluindo " + first.titulo : ", a começar às " + hmSpeak(first.inicio) + " com " + first.titulo));
+  }
+  return parts.length ? "Nos próximos dias: " + parts.join("; ") + "." : "Os próximos dias estão livres, " + addr + ".";
+}
+function sayActions(onlyImportant) {
+  if (EM.offline && !EM.lista.length) return "A antena está desligada, " + addr + ". Corre o iniciar-rissa.bat para eu ver os e-mails.";
+  if (!mailAccounts()) return "Ainda não ligaste nenhuma conta de e-mail. Abre a engrenagem e liga o Microsoft 365 ou o Gmail.";
+  const a = byBucket("acao");
+  const list = a.slice(0, 5).map(m => "De " + m.remetente + ": " + m.resumo).join(". ");
+  if (onlyImportant) return a.length ? "Tens " + plural(a.length, "e-mail", "e-mails") + " a pedir ação. " + list + "." : "Nada importante à tua espera, " + addr + ". Caixa sob controlo!";
+  return "Analisei " + EM.lista.length + " e-mails: " + a.length + " de ação, " + byBucket("info").length + " de informação e " + byBucket("ruido").length + " de ruído." + (a.length ? " Os de ação: " + list + "." : "");
+}
+function sayNews(topic) {
+  if (NW.offline && !NW.t) return "A antena está desligada, " + addr + ". Corre o iniciar-rissa.bat para eu ir buscar as notícias.";
+  const temas = topic ? [topic] : cfg.news.temas;
+  const parts = temas.filter(t => NW.data[t.nome] && NW.data[t.nome].length).map(t => t.nome + ": " + NW.data[t.nome].slice(0, topic ? 3 : 2).map(i => i.titulo).join(". "));
+  return parts.length ? "Aqui vão as manchetes. " + parts.join(". ") + "." : "Não encontrei manchetes de momento.";
+}
+async function sayTopicAdhoc(q) {
+  try {
+    const items = await fetchTopic(q, 3);
+    return items.length ? "Sobre " + q + ": " + items.map(i => i.titulo).join(". ") + "." : "Não encontrei notícias sobre " + q + ".";
+  } catch (e) { return e instanceof AntOff ? "A antena está desligada, " + addr + "." : "Não consegui ir buscar notícias sobre " + q + "."; }
+}
+const RE_MAIL = /\b(e mails?|emails?|mails?|correio|caixa de entrada)\b/;
+async function localCommand(text) {
+  const n = norm(text), short = n.split(" ").length <= 8, eco = cfg.eng.economia;
+  const go = async (tab, fn) => { setUser(text); if (tab) switchTab(tab); const msg = await working(fn()); await sayLong(msg); return true; };
+  // Ações: funcionam sempre
+  if (/^(bom dia|bons dias)\b/.test(n) || (short && /\b(digest|briefing)\b/.test(n))) { setUser(text); await runDigest({}); return true; }
+  if (/\batualiza\w*\b/.test(n) && RE_MAIL.test(n)) return go("emails", async () => { await loadEmails(true); return "E-mails atualizados. " + sayActions(true); });
+  if (/\batualiza\w*\b/.test(n) && /\bnoticias\b/.test(n)) return go("noticias", async () => { await loadNews(true); return "Notícias atualizadas, " + addr + ". Tens " + Object.values(NW.data).reduce((s, l) => s + l.length, 0) + " manchetes no radar."; });
+  if (!eco || !short) return false; // sem modo economia, a IA responde com o contexto injetado
+  if (RE_MAIL.test(n) && /\b(importantes?|urgentes?)\b/.test(n)) return go("emails", async () => { await loadEmails(false); return sayActions(true); });
+  if (/\bproxim[oa]s? (compromisso|reuniao|evento|marcacao|tarefa)\b/.test(n)) return go("agenda", async () => { await ensureAgenda(); return sayNext(); });
+  if (/\b(agenda|compromissos) (da|desta|para a|para esta) semana\b|\bproximos dias\b|\bresto da semana\b/.test(n)) return go("agenda", async () => { await ensureAgenda(); return sayWeek(); });
+  if (/\b(minha agenda|a agenda|agenda de hoje|o que (e que )?(eu )?tenho (para )?hoje|tenho hoje|compromissos de hoje|o meu dia)\b/.test(n)) return go("agenda", async () => { await ensureAgenda(); return sayToday(); });
+  const mt = n.match(/\bnoticias (de|sobre|da|do|dos|das|acerca de) (.+)$/);
+  if (mt) {
+    const q = mt[2].trim();
+    const topic = cfg.news.temas.find(t => { const a = norm(t.nome), b = norm(t.q || ""); return a.includes(q) || q.includes(a) || b.includes(q) || a.split(" ").some(w => w.length > 3 && q.includes(w)); });
+    return go("noticias", async () => { if (topic) { await loadNews(false); return sayNews(topic); } return sayTopicAdhoc(q); });
+  }
+  if (/\bnoticias\b/.test(n)) return go("noticias", async () => { await loadNews(false); return sayNews(null); });
+  if (RE_MAIL.test(n)) return go("emails", async () => { await loadEmails(false); return sayActions(false); });
+  return false;
+}
+const _processCommand = processCommand;
+processCommand = async function (text) {
+  let handled = false;
+  try { handled = await localCommand(text); } catch (e) { console.warn("Comando local falhou", e); busy = false; }
+  if (!handled) return _processCommand(text);
+};
+
+/* ---------------- System prompt: envolve o da Parte 1 (o Second Brain continua lá) ---------------- */
+function compactDay(list) {
+  if (!AG.t) return "(indisponível)";
+  if (!list || !list.length) return "livre";
+  return list.slice(0, 15).map(e => (e.diaTodo ? "dia todo" : hm(e.inicio)) + " " + e.titulo).join(" · ");
+}
+const _buildSystem = buildSystem;
+buildSystem = function () {
+  const byDay = eventsByDay(), L = [];
+  L.push("MÓDULOS: tens acesso à agenda do " + addr + " (Outlook e agendas iCal), aos e-mails (Office 365 e Gmail, triados em AÇÃO, INFO e RUÍDO), a um radar de notícias (temas: " +
+    cfg.news.temas.map(t => t.nome).join(", ") + ") e ao Morning Digest. Comandos de voz que ele pode usar: \"a minha agenda\", \"próximo compromisso\", \"agenda da semana\", " +
+    "\"os meus e-mails\", \"tenho e-mails importantes?\", \"notícias\", \"notícias de <tema>\", \"bom dia\", \"atualizar e-mails\", \"atualizar notícias\". Se ele perguntar o que sabes fazer, explica isto de forma breve e falada.");
+  L.push("Agenda de hoje: " + compactDay(byDay.get(dayKey(new Date()))));
+  L.push("Agenda de amanhã: " + compactDay(byDay.get(dayKey(addDays(new Date(), 1)))));
+  L.push("E-mails a pedir ação: " + (EM.t ? byBucket("acao").length : "(indisponível)"));
+  if (!cfg.eng.economia) {
+    L.push("Resumo dos e-mails de ação: " + (byBucket("acao").slice(0, 8).map(m => m.remetente + " — " + m.resumo).join(" | ") || "nenhum"));
+    L.push("Próximos dias: " + [...byDay].slice(2).map(([k, l]) => k + ": " + compactDay(l)).join(" ; "));
+    if (NW.t) L.push("Manchetes: " + cfg.news.temas.filter(t => NW.data[t.nome]).map(t => "[" + t.nome + "] " + NW.data[t.nome].slice(0, 3).map(i => i.titulo).join(" | ")).join(" ; "));
+  }
+  return _buildSystem() + "\n\n" + L.join("\n");
+};
+
+/* =====================================================================
+   SEPARADORES
+   ===================================================================== */
+function switchTab(name) {
+  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.dataset.tab === name));
+  document.querySelectorAll(".mpanel").forEach(p => p.classList.toggle("on", p.id === "p-" + name));
+  LS.set("jarvis_tab", name);
+  if (name === "agenda" && (!AG.t || Date.now() - AG.t > 10 * 60000)) loadAgenda();
+}
+document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => switchTab(t.dataset.tab)));
+
+/* =====================================================================
+   DEFINIÇÕES (⚙)
+   ===================================================================== */
+const cm = $("#cfgModal"), cc = $("#cfgCard");
+let msPoll = null;
+function rowEl(fields) {
+  const d = document.createElement("div");
+  d.className = "rowl";
+  for (const f of fields) {
+    if (!f) { d.appendChild(document.createElement("span")); continue; }
+    const i = document.createElement("input");
+    i.dataset.f = f.k;
+    i.type = f.type || "text";
+    if (f.ph) i.placeholder = f.ph;
+    if (f.wide) i.className = "wide";
+    i.autocomplete = "off";
+    i.spellcheck = false;
+    i.value = f.v || (f.type === "color" ? "#8b7cff" : "");
+    d.appendChild(i);
+  }
+  const x = document.createElement("button");
+  x.className = "x"; x.type = "button"; x.title = "Remover"; x.textContent = "✕";
+  x.onclick = () => d.remove();
+  d.appendChild(x);
+  return d;
+}
+const icsRow = c => rowEl([{ k: "nome", v: c.nome, ph: "Nome" }, { k: "url", v: c.url, ph: "Link iCal secreto (.ics)", type: "password", wide: true }, null, { k: "cor", v: c.cor, type: "color" }]);
+const imapRow = a => rowEl([{ k: "email", v: a.email, ph: "email@gmail.com", wide: true }, { k: "senha", v: a.senha, ph: "Senha de app (16 letras)", type: "password" }, { k: "apelido", v: a.apelido, ph: "Apelido" }, { k: "cor", v: a.cor, type: "color" }]);
+function renderMs(st) {
+  const box = hasEl("msBox");
+  if (!box) return;
+  st = st || { state: "idle" };
+  if (st.state === "pending") box.innerHTML = '<div class="msstate">Abre <a href="' + esc(st.uri || "https://microsoft.com/devicelogin") + '" target="_blank" rel="noopener">' + esc(st.uri || "microsoft.com/devicelogin") + "</a>, escreve este código e aceita:</div><div class=\"devcode\">" + esc(st.user_code || "") + "</div>";
+  else if (st.state === "connected") box.innerHTML = '<div class="msstate ok">✓ Ligado como ' + esc(st.account || "conta Microsoft") + "</div>";
+  else if (st.state === "error") box.innerHTML = '<div class="msstate err">✗ ' + esc(st.error || "Erro") + "</div>";
+  else box.innerHTML = '<div class="msstate">' + (antOnline === false ? esc(offMsg()) : "Ainda não ligado.") + "</div>";
+}
+function pollMs() {
+  clearInterval(msPoll);
+  msPoll = setInterval(async () => {
+    if (!cm.classList.contains("open")) { clearInterval(msPoll); return; }
+    try {
+      const st = await antJson("/api/ms/status", { timeout: 5000 });
+      msState = st; renderMs(st);
+      if (st.state !== "pending") { clearInterval(msPoll); if (st.state === "connected") { loadAgenda(); loadEmails(true); } }
+    } catch (e) { clearInterval(msPoll); }
+  }, 3000);
+}
+function openCfg() {
+  const c = cfg;
+  cc.innerHTML = `
+  <h3>⚙ DEFINIÇÕES</h3>
+  <div class="cfg-sec"><h4>MOTOR</h4>
+    <div class="grid2">
+      <label>NÍVEL<select id="cNivel">${Object.entries(LEVELS).map(([k, L]) => `<option value="${k}">${L.label} — ${L.nota}</option>`).join("")}</select></label>
+      <label class="chk"><input type="checkbox" id="cEco"> Modo economia (comandos locais, cache, 1 pedido por lote)</label>
+    </div>
+  </div>
+  <div class="cfg-sec"><h4>MICROSOFT 365 · E-MAIL E AGENDA DE TRABALHO</h4>
+    <ol class="howto">
+      <li>Abre <a href="https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade" target="_blank" rel="noopener">portal.azure.com → Registos de aplicações</a> e clica <b>Novo registo</b>.</li>
+      <li>Nome <code>PauloIA</code> · "Apenas contas neste diretório organizacional" · <b>Registar</b>.</li>
+      <li>Copia o <b>ID da aplicação (cliente)</b> e o <b>ID do diretório (inquilino)</b> para os campos abaixo.</li>
+      <li>Em <b>Autenticação</b>, ativa <b>Permitir fluxos de cliente público</b> e guarda.</li>
+      <li>Em <b>Permissões de API</b> → Adicionar → Microsoft Graph → Delegadas: <code>Mail.Read</code>, <code>Calendars.Read</code>, <code>User.Read</code>, <code>offline_access</code>.</li>
+      <li>Clica <b>LIGAR</b>, abre o link, escreve o código e aceita com a tua conta da FTP Porto.</li>
+    </ol>
+    <div class="grid2">
+      <label>ID DA APLICAÇÃO (CLIENTE)<input id="cMsClient" autocomplete="off" spellcheck="false" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"></label>
+      <label>ID DO DIRETÓRIO (INQUILINO)<input id="cMsTenant" autocomplete="off" spellcheck="false" placeholder="xxxxxxxx-xxxx-… ou ftpporto.com"></label>
+      <label>APELIDO<input id="cMsNome"></label>
+      <label>COR<input type="color" id="cMsCor"></label>
+      <label class="chk"><input type="checkbox" id="cMsMail"> Usar para os e-mails</label>
+      <label class="chk"><input type="checkbox" id="cMsCal"> Usar para a agenda</label>
+    </div>
+    <div id="msBox"></div>
+    <div class="row" style="justify-content:flex-start"><button class="btn" id="msConnect" type="button">LIGAR</button><button class="btn ghost" id="msLogout" type="button">DESLIGAR</button></div>
+    <div class="warn">Acesso só de leitura. A sessão fica guardada neste PC (antena_tokens.json) e nunca é enviada para a IA. Se aparecer "aprovação do administrador", pede à TI para aprovar a app PauloIA.</div>
+  </div>
+  <div class="cfg-sec"><h4>AGENDAS GOOGLE / iCAL</h4>
+    <ol class="howto"><li>Google Agenda no computador → ⚙ Definições → clica na agenda à esquerda → <b>Integrar agenda</b> → copia o <b>Endereço secreto no formato iCal</b>.</li></ol>
+    <div class="warn">Este link dá acesso de leitura à tua agenda. Fica guardado só neste browser e nunca é enviado para a IA.</div>
+    <div id="icsRows"></div>
+    <div class="row" style="justify-content:flex-start"><button class="btn" id="addIcs" type="button">+ ADICIONAR AGENDA</button></div>
+    <div class="grid2"><label>JANELA<select id="cDias"><option value="0">Só hoje</option><option value="7">Hoje + 7 dias</option></select></label></div>
+  </div>
+  <div class="cfg-sec"><h4>GMAIL (IMAP)</h4>
+    <ol class="howto">
+      <li><b>Primeiro</b> ativa a verificação em 2 passos em <a href="https://myaccount.google.com/security" target="_blank" rel="noopener">myaccount.google.com/security</a>. Sem ela o Google não deixa criar senhas de app.</li>
+      <li><b>Depois</b> vai a <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">myaccount.google.com/apppasswords</a>, cria uma app chamada <code>PauloIA</code> e copia a senha de 16 letras.</li>
+      <li>Cola-a aqui. Não é a tua senha normal do Gmail.</li>
+    </ol>
+    <div class="warn">A senha de app fica só neste browser e viaja apenas até à antena local e ao Google. Para a triagem, remetente, assunto e um trecho de cada e-mail vão para a IA (Gemini ou Claude). A PauloIA só LÊ: nunca envia, responde, apaga ou marca nada.</div>
+    <div id="imapRows"></div>
+    <div class="row" style="justify-content:flex-start"><button class="btn" id="addImap" type="button">+ ADICIONAR CONTA</button></div>
+    <div class="grid2">
+      <label>E-MAILS POR CONTA<input type="number" id="cQtd" min="5" max="50"></label>
+      <label>ATUALIZAR A CADA (MIN)<input type="number" id="cMailInt" min="5" max="240"></label>
+    </div>
+    <label>CRITÉRIO EXTRA PARA "AÇÃO"<textarea id="cPrio" style="min-height:60px"></textarea></label>
+  </div>
+  <div class="cfg-sec"><h4>NOTÍCIAS</h4>
+    <label>TEMAS (um por linha · opcional: "Nome | pesquisa")<textarea id="cTemas"></textarea></label>
+    <div class="grid2">
+      <label>MANCHETES POR TEMA<input type="number" id="cNn" min="1" max="10"></label>
+      <label>ATUALIZAR A CADA (MIN)<input type="number" id="cNewsInt" min="10" max="240"></label>
+    </div>
+  </div>
+  <div class="cfg-sec"><h4>MORNING DIGEST</h4>
+    <div class="grid2">
+      <label>CIDADE (TEMPO)<input id="cCidade"></label>
+      <label>TAMANHO<select id="cTam"><option value="curto">Curto (~30 s)</option><option value="medio">Médio (~1 min)</option></select></label>
+      <label class="chk"><input type="checkbox" id="cClima"> Previsão do tempo</label>
+      <label class="chk"><input type="checkbox" id="cAuto"> Automático na 1.ª ativação do dia</label>
+      <label class="chk"><input type="checkbox" id="cVoz"> Ler em voz alta</label>
+    </div>
+  </div>
+  <div class="row"><button class="btn ghost" id="cfgCancel" type="button">CANCELAR</button><button class="btn" id="cfgSave" type="button">GUARDAR</button></div>`;
+  const v = (id, val) => { $("#" + id).value = val == null ? "" : val; }, ck = (id, val) => { $("#" + id).checked = !!val; };
+  v("cNivel", c.eng.nivel); ck("cEco", c.eng.economia);
+  v("cMsClient", c.mail.m365.clientId); v("cMsTenant", c.mail.m365.tenant); v("cMsNome", c.mail.m365.apelido); v("cMsCor", c.mail.m365.cor);
+  ck("cMsMail", c.mail.m365.ativo); ck("cMsCal", c.cal.outlook.ativo);
+  v("cDias", String(+c.cal.dias ? 7 : 0));
+  v("cQtd", c.mail.quantidade); v("cMailInt", c.mail.intervaloMin); v("cPrio", c.mail.prioridade);
+  v("cTemas", c.news.temas.map(t => t.q && t.q !== t.nome ? t.nome + " | " + t.q : t.nome).join("\n"));
+  v("cNn", c.news.n); v("cNewsInt", c.news.intervaloMin);
+  v("cCidade", c.dig.cidade); v("cTam", c.dig.tamanho); ck("cClima", c.dig.clima); ck("cAuto", c.dig.auto); ck("cVoz", c.dig.voz);
+  const ir = $("#icsRows"), mr = $("#imapRows");
+  c.cal.ics.forEach(x => ir.appendChild(icsRow(x)));
+  c.mail.imap.forEach(x => mr.appendChild(imapRow(x)));
+  $("#addIcs").onclick = () => ir.appendChild(icsRow({ nome: "", url: "", cor: "#8b7cff" }));
+  $("#addImap").onclick = () => mr.appendChild(imapRow({ email: "", senha: "", apelido: "", cor: "#10b981" }));
+  $("#cfgCancel").onclick = closeCfg;
+  $("#cfgSave").onclick = () => { saveCfg(); closeCfg(); };
+  $("#msConnect").onclick = async () => {
+    saveCfg();
+    renderMs({ state: "idle" });
+    hasEl("msBox").innerHTML = '<div class="msstate">A pedir código à Microsoft…</div>';
+    try {
+      const st = await antJson("/api/ms/start", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ clientId: cfg.mail.m365.clientId, tenant: cfg.mail.m365.tenant }) });
+      msState = st; renderMs(st);
+      if (st.state === "pending") pollMs();
+    } catch (e) { renderMs({ state: "error", error: e instanceof AntOff ? offMsg() : e.message }); }
+  };
+  $("#msLogout").onclick = async () => {
+    try { const st = await antJson("/api/ms/logout", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" }); msState = st; renderMs(st); }
+    catch (e) { renderMs({ state: "error", error: e instanceof AntOff ? offMsg() : e.message }); }
+  };
+  renderMs(msState);
+  ping().then(() => { renderMs(msState); if (msState && msState.state === "pending") pollMs(); });
+  cm.classList.add("open");
+}
+function readRows(sel, keys) {
+  return [...document.querySelectorAll(sel + " .rowl")].map(r => {
+    const o = {};
+    for (const k of keys) { const i = r.querySelector('[data-f="' + k + '"]'); o[k] = i ? i.value.trim() : ""; }
+    return o;
+  });
+}
+function saveCfg() {
+  const val = id => $("#" + id).value.trim(), on = id => $("#" + id).checked, num = (id, d, lo, hi) => Math.min(hi, Math.max(lo, parseInt(val(id), 10) || d));
+  cfg.eng = { nivel: val("cNivel"), economia: on("cEco") };
+  const nome = val("cMsNome") || "Trabalho", cor = val("cMsCor") || "#3b82f6";
+  cfg.mail.m365 = { ativo: on("cMsMail"), apelido: nome, cor, clientId: val("cMsClient"), tenant: val("cMsTenant") };
+  cfg.cal.outlook = { ativo: on("cMsCal"), nome, cor };
+  cfg.cal.dias = +val("cDias");
+  cfg.cal.ics = readRows("#icsRows", ["nome", "url", "cor"]).filter(x => x.url);
+  cfg.mail.imap = readRows("#imapRows", ["email", "senha", "apelido", "cor"]).filter(x => x.email || x.senha).map(x => ({ ...x, host: "imap.gmail.com" }));
+  cfg.mail.quantidade = num("cQtd", 20, 5, 50);
+  cfg.mail.intervaloMin = num("cMailInt", 15, 5, 240);
+  cfg.mail.prioridade = val("cPrio");
+  const temas = val("cTemas").split("\n").map(l => l.trim()).filter(Boolean).map(l => { const [a, b] = l.split("|").map(s => s.trim()); return { nome: a, q: b || a }; });
+  cfg.news.temas = temas.length ? temas : structuredClone(DEF.news.temas);
+  cfg.news.n = num("cNn", 5, 1, 10);
+  cfg.news.intervaloMin = num("cNewsInt", 30, 10, 240);
+  cfg.dig = { ...cfg.dig, cidade: val("cCidade"), tamanho: val("cTam"), clima: on("cClima"), auto: on("cAuto"), voz: on("cVoz") };
+  jset("jarvis_engine", cfg.eng); jset("jarvis_calendars", cfg.cal); jset("jarvis_emails", cfg.mail); jset("jarvis_news_cfg", cfg.news); jset("jarvis_digest_cfg", cfg.dig);
+  applyEngine();
+  scheduleMail();
+}
+function closeCfg() {
+  cm.classList.remove("open");
+  clearInterval(msPoll);
+  loadAgenda(); loadEmails(true); loadNews(false);
+}
+$("#cfgBtn").addEventListener("click", openCfg);
+cm.addEventListener("click", e => { if (e.target === cm) closeCfg(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && cm.classList.contains("open")) closeCfg(); });
+
+/* =====================================================================
+   ARRANQUE
+   ===================================================================== */
+refreshAntChip();
+renderAgenda(); renderEmails(); renderNews(); renderDigest();
+switchTab(LS.get("jarvis_tab") || "agenda");
+ping().then(() => { loadAgenda(); loadEmails(true); loadNews(false); });
+setInterval(ping, 60000);
+scheduleMail();
+
+// Para testes e depuração na consola
+window.PIA = { cfg, AG, EM, NW, icsEvents, expandRRule, localCommand, runDigest, loadAgenda, loadEmails, loadNews, heur, digestTemplate };
+})();
 </script>
 </body>
 </html>
