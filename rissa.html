@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Rissa</title>
+<title>PauloIA</title>
 <style>
 :root{
   --theme:#00c8ff; --violet:#8b5cf6; --bg:#03070d; --panel:rgba(6,18,30,.78);
@@ -22,7 +22,7 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
   background:var(--bg);transition:opacity .7s ease;padding:16px;text-align:center}
 #boot{z-index:51} #activate{z-index:50}
 .screen.hide{opacity:0;pointer-events:none}
-.gtitle{font-family:var(--mono);font-weight:800;letter-spacing:.35em;padding-left:.35em;font-size:clamp(44px,13vw,112px);margin:0;
+.gtitle{font-family:var(--mono);font-weight:800;letter-spacing:.35em;padding-left:.35em;font-size:clamp(30px,9vw,104px);margin:0;
   background:linear-gradient(90deg,var(--theme),var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent;
   filter:drop-shadow(0 0 18px rgba(0,200,255,.35))}
 .ghr{width:min(520px,80vw);height:2px;border:0;margin:0;background:linear-gradient(90deg,transparent,var(--theme),var(--violet),transparent)}
@@ -224,12 +224,12 @@ body.speaking .orb .core{animation:pulse 1.6s ease-in-out infinite}
 
 /* ===================== CONFIGURAÇÃO ===================== */
 const CONFIG = {
-  name: "Rissa",
+  name: "PauloIA",
   address: "Paulo",
   themeColor: "#00c8ff",
   persona: "descontraída",
-  wakeWord: "ola rissa",
-  wakeVariants: ["ola rissa", "ola risa", "ola rita"], // transcrições erradas comuns
+  wakeWord: "ola pauloia",
+  wakeVariants: ["ola pauloia", "ola paulo ia", "ola paulo i a", "ola paulo e a", "ola paulo iah"], // formas como o Chrome costuma transcrever
   voiceGender: "feminina",
   lang: "pt-PT",
   model: "claude-sonnet-5-5",
@@ -454,13 +454,14 @@ function updateMic() { $("#micBtn").classList.toggle("on", wantListening); }
 
 // Procura a wake word na frase; devolve o que vem depois dela
 function splitWake(raw) {
-  const words = raw.split(/\s+/).map(w => ({ w, n: norm(w) })).filter(o => o.n);
+  // "I.A." normaliza para "i a": parte em sub-palavras; só a última guarda a palavra original
+  const words = raw.split(/\s+/).flatMap(w => norm(w).split(" ").filter(Boolean).map((n, k, arr) => ({ w: k === arr.length - 1 ? w : "", n })));
   for (const v of CONFIG.wakeVariants) {
     const vt = v.split(" ");
     for (let i = 0; i + vt.length <= words.length; i++) {
       let ok = true;
       for (let j = 0; j < vt.length; j++) if (words[i + j].n !== vt[j]) { ok = false; break; }
-      if (ok) return { hit: true, rest: words.slice(i + vt.length).map(o => o.w).join(" ").replace(/^[\s,.:;!?-]+/, "").trim() };
+      if (ok) return { hit: true, rest: words.slice(i + vt.length).map(o => o.w).filter(Boolean).join(" ").replace(/^[\s,.:;!?-]+/, "").trim() };
     }
   }
   return { hit: false, rest: raw };
