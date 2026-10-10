@@ -2793,7 +2793,36 @@ function applyAvatar() {
 
 /* ---------------- AVATAR FOTOGRAFIA: a cara da agente, com a boca animada pela voz ---------------- */
 // Coordenadas na imagem apiav1-avatar.jpg (1000×1300): cantos da boca, linha entre os lábios e fundo do queixo
-const AV = { img: new Image(), ok: false, mx0: 392, mx1: 632, split: 820, end: 1070, col: 3, max: 26 };
+const AV = { img: new Image(), ok: false, mx0: 392, mx1: 632, split: 820, end: 1070, col: 3, max: 26,
+  eyes: [{ cx: 310, cy: 415, rx: 90, ry: 30 }, { cx: 710, cy: 416, rx: 88, ry: 30 }], pivot: { x: 500, y: 640 } };
+// Vida: olhar (movimentos rápidos para pontos diferentes), piscar e movimento da cabeça
+const LIFE = { gx: 0, gy: 0, tx: 0, ty: 0, nextGaze: 0, blinkT: -1, nextBlink: 2, dbl: false, tilt: 0, nod: 0 };
+function lifeUpdate(t, dt, st) {
+  if (t > LIFE.nextGaze) {
+    if (st === "thinking") { LIFE.tx = 0.5 + Math.random() * 0.4; LIFE.ty = -0.7 - Math.random() * 0.3; }       // a pensar: olha para cima
+    else if (st === "speaking" || st === "listening") { LIFE.tx = (Math.random() - 0.5) * 0.5; LIFE.ty = (Math.random() - 0.5) * 0.3; } // olha para ti
+    else { LIFE.tx = (Math.random() - 0.5) * 1.6; LIFE.ty = (Math.random() - 0.5) * 0.9; }
+    LIFE.nextGaze = t + 1.0 + Math.random() * 2.5;
+    if (Math.random() < 0.2 && LIFE.blinkT < 0) LIFE.nextBlink = t + 0.05; // às vezes pisca ao mudar o olhar
+  }
+  LIFE.gx += (LIFE.tx - LIFE.gx) * Math.min(1, dt * 18); // movimento rápido do olhar
+  LIFE.gy += (LIFE.ty - LIFE.gy) * Math.min(1, dt * 18);
+  if (LIFE.blinkT < 0 && t > LIFE.nextBlink) { LIFE.blinkT = 0; LIFE.dbl = Math.random() < 0.15; }
+  let blink = 0;
+  if (LIFE.blinkT >= 0) {
+    LIFE.blinkT += dt;
+    const d = 0.24, k = LIFE.blinkT / d;
+    blink = k < 0.45 ? k / 0.45 : Math.max(0, 1 - (k - 0.45) / 0.55);
+    if (LIFE.blinkT > d) {
+      LIFE.blinkT = -1;
+      LIFE.nextBlink = LIFE.dbl ? t + 0.12 : t + 2.5 + Math.random() * 3.5;
+      LIFE.dbl = false;
+    }
+  }
+  LIFE.tilt += (((st === "listening") ? 1.1 : (st === "thinking") ? -0.8 : 0) - LIFE.tilt) * Math.min(1, dt * 2.5);
+  LIFE.nod += ((st === "speaking" ? mouth : 0) - LIFE.nod) * Math.min(1, dt * 4);
+  return blink;
+}
 AV.img.onload = () => { AV.ok = true; };
 AV.img.onerror = () => console.warn("Não consegui carregar a fotografia da agente");
 AV.img.src = document.getElementById("avatarData").textContent.trim(); // fotografia embutida na própria página
@@ -2809,13 +2838,41 @@ function photoFrame(now) {
   if (photoCv.width !== Math.round(cw * dpr) || photoCv.height !== Math.round(ch * dpr)) { photoCv.width = Math.round(cw * dpr); photoCv.height = Math.round(ch * dpr); }
   const W = photoCv.width, H = photoCv.height, t = now / 1000, dt = Math.min(0.05, (now - (pLast || now)) / 1000), st = uiState;
   pLast = now;
-  const IW = AV.img.width, IH = AV.img.height, s = Math.max(W / IW, H / IH) * (1 + 0.006 * Math.sin(t * 1.3));
+  const IW = AV.img.width, IH = AV.img.height, s = Math.max(W / IW, H / IH) * 1.05 * (1 + 0.006 * Math.sin(t * 1.3));
   const ox = (W - IW * s) / 2, oy = (H - IH * s) / 2;
   mouth += (speechLevel() - mouth) * 0.35;
+  const blink = lifeUpdate(t, dt, st);
   pctx.setTransform(1, 0, 0, 1, 0, 0);
   pctx.clearRect(0, 0, W, H);
+  // Cabeça: oscilações lentas sobrepostas, pequenos acenos ao falar, inclinação ao ouvir e ao pensar
+  const hx = 6 * Math.sin(t * 0.31) + 3 * Math.sin(t * 0.73 + 1.3);
+  const hy = 3 * Math.sin(t * 0.41 + 0.7) + LIFE.nod * 5 * (0.6 + 0.4 * Math.sin(t * 5.1)) - LIFE.tilt * 2;
+  const rot = (0.9 * Math.sin(t * 0.23) + 0.4 * Math.sin(t * 0.57 + 2) + LIFE.tilt * 0.9 + LIFE.nod * 0.5 * Math.sin(t * 3.7)) * Math.PI / 180;
+  const skew = 0.012 * Math.sin(t * 0.29 + 0.5); // ligeira rotação lateral
   pctx.setTransform(s, 0, 0, s, ox, oy);
+  pctx.translate(AV.pivot.x + hx, AV.pivot.y + hy);
+  pctx.rotate(rot);
+  pctx.transform(1, 0, skew, 1, 0, 0);
+  pctx.translate(-AV.pivot.x, -AV.pivot.y);
   pctx.drawImage(AV.img, 0, 0);
+  // Olhos: o olhar desloca-se dentro da abertura do olho; ao piscar a pálpebra desce sobre o olho
+  for (const e of AV.eyes) {
+    pctx.save();
+    pctx.beginPath();
+    pctx.ellipse(e.cx, e.cy, e.rx * 0.92, e.ry * 0.86, 0, 0, Math.PI * 2);
+    pctx.clip();
+    const gx = LIFE.gx * 7, gy = LIFE.gy * 3, bx = e.cx - e.rx - 14, by = e.cy - e.ry - 10, bw = 2 * e.rx + 28, bh = 2 * e.ry + 20;
+    if (Math.abs(gx) + Math.abs(gy) > 0.2) pctx.drawImage(AV.img, bx - gx, by - gy, bw, bh, bx, by, bw, bh);
+    if (blink > 0.02) {
+      const top = e.cy - e.ry - 34, srcH = 34, dstH = srcH + blink * (2 * e.ry + 8);
+      pctx.drawImage(AV.img, e.cx - e.rx - 8, top, 2 * e.rx + 16, srcH, e.cx - e.rx - 8, top, 2 * e.rx + 16, dstH);
+      pctx.fillStyle = "rgba(6,8,18," + (0.3 + 0.35 * blink) + ")"; // linha das pestanas
+      pctx.beginPath();
+      pctx.ellipse(e.cx, top + dstH - 1, e.rx * 0.9, 1.5 + 1.5 * blink, 0, 0, Math.PI * 2);
+      pctx.fill();
+    }
+    pctx.restore();
+  }
   // Boca: o lábio inferior e o queixo descem coluna a coluna (mais no centro, nada nos cantos) e aparece o interior da boca
   const o = Math.min(1, mouth * 1.15) * AV.max;
   if (o > 0.5) {
@@ -3051,7 +3108,7 @@ setInterval(ping, 60000);
 scheduleMail();
 
 // Para testes e depuração na consola
-window.PIA = { isEcho, cfg, AG, EM, NW, icsEvents, expandRRule, localCommand, runDigest, loadAgenda, loadEmails, loadNews, heur, digestTemplate };
+window.PIA = { LIFE, isEcho, cfg, AG, EM, NW, icsEvents, expandRRule, localCommand, runDigest, loadAgenda, loadEmails, loadNews, heur, digestTemplate };
 })();
 </script>
 </body>
