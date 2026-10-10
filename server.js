@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /*
-  ANTENA DA PAULOIA — Node puro, sem npm install (alternativa ao antena.py).
+  ANTENA DA A.P.IAv1 — Node puro, sem npm install (alternativa ao antena.py).
   Corre com:  node server.js   (e deixa o terminal aberto)
 
   Escuta só em 127.0.0.1:4242. Rotas:
@@ -306,7 +306,7 @@ async function proxy(req, res, target) {
   res.end(r.body);
 }
 function serveStatic(req, res, p) {
-  const name = decodeURIComponent(p.replace(/^\/+/, "")) || "pauloia.html";
+  const name = decodeURIComponent(p.replace(/^\/+/, "")) || "apiav1.html";
   const ext = path.extname(name).toLowerCase(), full = path.join(__dirname, name);
   if (/[\/\\]/.test(name) || name.startsWith(".") || !STATIC[ext] || !fs.existsSync(full)) return send(req, res, 404, { erro: "Ficheiro não encontrado: " + name });
   const body = fs.readFileSync(full);
@@ -316,7 +316,7 @@ function serveStatic(req, res, p) {
 
 const server = http.createServer(async (req, res) => {
   console.log("  · " + req.method + " " + mask(req.url));
-  // Só aceita pedidos feitos a localhost e vindos da própria PauloIA (protege contra sites maliciosos)
+  // Só aceita pedidos feitos a localhost e vindos da própria A.P.IAv1 (protege contra sites maliciosos)
   if (!ALLOWED_HOSTS.has(req.headers.host || "")) return send(req, res, 403, { erro: "Host não autorizado" });
   if (req.headers.origin && !ALLOWED_ORIGINS.has(req.headers.origin)) return send(req, res, 403, { erro: "Origem não autorizada" });
   if (req.method === "OPTIONS") {
@@ -360,7 +360,7 @@ server.on("error", e => {
 
 server.listen(PORT, HOST, () => {
   console.log("");
-  console.log("  ⚡ ANTENA DA PAULOIA ONLINE — porta " + PORT + ". Já podes abrir o pauloia.html.");
+  console.log("  ⚡ ANTENA DA A.P.IAv1 ONLINE — porta " + PORT + ". Já podes abrir o apiav1.html.");
   console.log("     Mantém este terminal aberto (Ctrl+C para desligar).");
   console.log("");
 });

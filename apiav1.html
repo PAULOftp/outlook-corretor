@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>PauloIA</title>
+<title>A.P.IAv1</title>
 <style>
 :root{
   --theme:#00c8ff; --violet:#8b5cf6; --bg:#03070d; --panel:rgba(6,18,30,.78);
@@ -448,12 +448,13 @@ body.idle .hud #status:not(.err){color:#ff8a7a}
 
 /* ===================== CONFIGURAÇÃO ===================== */
 const CONFIG = {
-  name: "PauloIA",
+  name: "A.P.IAv1",
   address: "Paulo",
   themeColor: "#00c8ff",
   persona: "descontraída",
-  wakeWord: "ola pauloia",
-  wakeVariants: ["ola pauloia", "ola paulo ia", "ola paulo i a", "ola paulo e a", "ola paulo iah"], // formas como o Chrome costuma transcrever
+  wakeWord: "ola ia",
+  wakeDisplay: "Olá IA", // como se chama em voz alta
+  wakeVariants: ["ola ia", "ola i a", "ola iah", "ola ea", "ola e a", "ola yah"], // formas como o Chrome costuma transcrever
   voiceGender: "feminina",
   lang: "pt-PT",
   model: "claude-sonnet-5-5",
@@ -509,7 +510,7 @@ const LS = {
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const norm = s => String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
   .replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
-const WAKE_DISPLAY = "Olá " + CONFIG.name;
+const WAKE_DISPLAY = CONFIG.wakeDisplay || "Olá " + CONFIG.name;
 const CONV_MS = 12000; // janela em que continuo a ouvir sem a wake word, depois de falar
 
 /* ===================== ESTADO ===================== */
@@ -529,8 +530,8 @@ function loadNotes() {
 function saveNotes() { LS.set("jarvis_notes", JSON.stringify(notes)); }
 
 /* ===================== INTERFACE ===================== */
-["#bootName", "#actName", "#appName"].forEach(s => $(s).textContent = CONFIG.name.toUpperCase());
-$("#botLbl").textContent = CONFIG.name.toUpperCase();
+["#bootName", "#actName", "#appName"].forEach(s => $(s).textContent = CONFIG.name);
+$("#botLbl").textContent = CONFIG.name;
 $("#injected").textContent = "✓ contexto injetado em todos os comandos da " + CONFIG.name;
 
 function setUser(t) { $("#userText").textContent = t; }
@@ -719,7 +720,7 @@ function buildSystem() {
     brain += "\n\n## " + AREA[k].label + " (" + k + ")\n" + ns.map(n => "- " + n.title + ": " + noteText(n)).join("\n");
   }
   return [
-    "És a " + CONFIG.name + ", a assistente pessoal de voz do " + CONFIG.address + ". Personalidade " + CONFIG.persona +
+    "És a " + CONFIG.name + " (em voz alta chamam-te \"IA\"), a assistente pessoal de voz do " + CONFIG.address + ". Personalidade " + CONFIG.persona +
     ": próxima, bem-disposta e informal, com humor leve, mas sempre útil e certeira. Tratas o " + CONFIG.address +
     " por tu e chamas-lhe " + CONFIG.address + ".",
     "REGRAS DE RESPOSTA: respondes sempre em português europeu (de Portugal), nunca em português do Brasil. " +
@@ -1118,7 +1119,7 @@ $("#btnActivate").addEventListener("click", () => {
 "use strict";
 
 /* ---------------- Configuração persistente ---------------- */
-// Servida pela antena (iniciar-pauloia.bat → localhost:8080, ou node server.js → localhost:4242): mesma origem.
+// Servida pela antena (iniciar-apiav1.bat → localhost:8080, ou node server.js → localhost:4242): mesma origem.
 // Aberta com duplo clique (file://): fala com a antena Node em 127.0.0.1:4242.
 const ANT = location.protocol.startsWith("http") ? "" : "http://127.0.0.1:4242";
 const jget = (k, d) => { try { const v = JSON.parse(LS.get(k)); return v == null ? d : v; } catch (e) { return d; } };
@@ -1298,7 +1299,7 @@ function playPcm(a) {
   });
 }
 function stopCloud() { cloudStop = true; if (curSrc) { try { curSrc.stop(); } catch (e) {} curSrc = null; } }
-/* ---------------- Anti-eco: a PauloIA não se pode ouvir a si própria ---------------- */
+/* ---------------- Anti-eco: a A.P.IAv1 não se pode ouvir a si própria ---------------- */
 let lastSpoken = "", lastSpokenAt = 0, micGranted = false;
 try {
   navigator.permissions.query({ name: "microphone" }).then(st => { micGranted = st.state === "granted"; st.onchange = () => { micGranted = st.state === "granted"; }; }).catch(() => {});
@@ -1350,8 +1351,8 @@ class AntOff extends Error {}
 let antOnline = null, msState = null;
 function offMsg() {
   return location.protocol.startsWith("http")
-    ? "ANTENA OFFLINE — abre a PauloIA pelo iniciar-pauloia.bat e mantém a janela da antena aberta."
-    : "ANTENA OFFLINE — abre a PauloIA pelo iniciar-pauloia.bat (ou corre: node server.js na pasta e mantém o terminal aberto).";
+    ? "ANTENA OFFLINE — abre a A.P.IAv1 pelo iniciar-apiav1.bat e mantém a janela da antena aberta."
+    : "ANTENA OFFLINE — abre a A.P.IAv1 pelo iniciar-apiav1.bat (ou corre: node server.js na pasta e mantém o terminal aberto).";
 }
 function refreshAntChip() {
   const c = $("#antChip");
@@ -2032,7 +2033,7 @@ $("#btnActivate").addEventListener("click", () => {
    ===================================================================== */
 async function working(p) { busy = true; setState("thinking"); try { return await p; } finally { busy = false; } }
 function sayToday() {
-  if (AG.offline && !AG.eventos.length) return "A antena está desligada, " + addr + ". Corre o iniciar-pauloia.bat para eu ver a agenda.";
+  if (AG.offline && !AG.eventos.length) return "A antena está desligada, " + addr + ". Corre o iniciar-apiav1.bat para eu ver a agenda.";
   const evs = eventsByDay().get(dayKey(new Date())) || [];
   if (!evs.length) return "Hoje tens a agenda livre, " + addr + ". Aproveita!";
   return "Hoje tens " + plural(evs.length, "compromisso", "compromissos") + ": " + evs.slice(0, 8).map(e => e.diaTodo ? e.titulo + ", o dia todo" : "às " + hmSpeak(e.inicio) + ", " + e.titulo).join("; ") + ".";
@@ -2054,7 +2055,7 @@ function sayWeek() {
   return parts.length ? "Nos próximos dias: " + parts.join("; ") + "." : "Os próximos dias estão livres, " + addr + ".";
 }
 function sayActions(onlyImportant) {
-  if (EM.offline && !EM.lista.length) return "A antena está desligada, " + addr + ". Corre o iniciar-pauloia.bat para eu ver os e-mails.";
+  if (EM.offline && !EM.lista.length) return "A antena está desligada, " + addr + ". Corre o iniciar-apiav1.bat para eu ver os e-mails.";
   if (!mailAccounts()) return "Ainda não ligaste nenhuma conta de e-mail. Abre a engrenagem e liga o Microsoft 365 ou o Gmail.";
   const a = byBucket("acao");
   const list = a.slice(0, 5).map(m => "De " + m.remetente + ": " + String(m.resumo).replace(/[.!\s]+$/, "")).join(". ");
@@ -2062,7 +2063,7 @@ function sayActions(onlyImportant) {
   return "Analisei " + EM.lista.length + " e-mails: " + a.length + " de ação, " + byBucket("info").length + " de informação e " + byBucket("ruido").length + " de ruído." + (a.length ? " Os de ação: " + list + "." : "");
 }
 function sayNews(topic) {
-  if (NW.offline && !NW.t) return "A antena está desligada, " + addr + ". Corre o iniciar-pauloia.bat para eu ir buscar as notícias.";
+  if (NW.offline && !NW.t) return "A antena está desligada, " + addr + ". Corre o iniciar-apiav1.bat para eu ir buscar as notícias.";
   const temas = topic ? [topic] : cfg.news.temas;
   const parts = temas.filter(t => NW.data[t.nome] && NW.data[t.nome].length).map(t => t.nome + ": " + NW.data[t.nome].slice(0, topic ? 3 : 2).map(i => i.titulo).join(". "));
   return parts.length ? "Aqui vão as manchetes. " + parts.join(". ") + "." : "Não encontrei manchetes de momento.";
@@ -2176,12 +2177,12 @@ function renderMs(st) {
     (old ? " — confirma se a tarefa agendada do Claude está a correr." : "") + "</div>";
 }
 function msPrompt() {
-  return "Tarefa: sincronizar o Outlook para a PauloIA (só leitura).\n" +
+  return "Tarefa: sincronizar o Outlook para a A.P.IAv1 (só leitura).\n" +
     "1. Com o conector Microsoft 365, lê os " + (+cfg.mail.quantidade || 20) + " e-mails mais recentes da Caixa de Entrada da minha conta de trabalho.\n" +
     "2. Lê os eventos do meu calendário Outlook desde hoje às 00:00 até daqui a 8 dias.\n" +
     "3. Classifica cada e-mail num balde: \"acao\" (pede resposta, tarefa, decisão ou tem prazo; alguém está à minha espera. " + (cfg.mail.prioridade || "") + "), " +
     "\"info\" (vale a pena saber mas não exige nada) ou \"ruido\" (promoções, newsletters, notificações automáticas). Escreve um resumo de uma frase em português europeu.\n" +
-    "4. Grava o ficheiro m365.json na pasta da PauloIA (substitui o anterior), só com JSON válido e sem texto à volta, neste formato:\n" +
+    "4. Grava o ficheiro m365.json na pasta da A.P.IAv1 (substitui o anterior), só com JSON válido e sem texto à volta, neste formato:\n" +
     '{"atualizado":"<agora, ISO 8601 com fuso>","conta":"<o meu e-mail>","emails":[{"id":"<internetMessageId>","remetente":"<nome>","email":"<endereço>","assunto":"...","data":"<ISO 8601>","trecho":"<até 300 caracteres do início do corpo>","lido":true,"balde":"acao","resumo":"..."}],' +
     '"eventos":[{"titulo":"...","inicio":"<ISO 8601 com fuso>","fim":"<ISO 8601 com fuso>","diaTodo":false,"local":"..."}]}\n' +
     "5. Acrescenta ao JSON o campo \"conhecimento\": até 5 factos duradouros e claros sobre a FTP Porto e o meu trabalho que aprendeste nesses e-mails (produtos e serviços, clientes, parceiros, concorrentes, colegas e funções, processos), " +
@@ -2205,14 +2206,14 @@ function openCfg() {
     </div>
     <label>ESTILO (instrução de sotaque e tom)<input id="cVozEstilo"></label>
     <div class="row" style="justify-content:flex-start"><button class="btn" id="vozTest" type="button">▶ OUVIR TESTE</button></div>
-    <div class="warn">A voz Gemini só funciona com chave do Gemini (AIza…). Se a quota gratuita acabar, a PauloIA passa sozinha para a voz do browser. No browser, o Microsoft Edge tem a voz "Raquel (Natural)" de Portugal, muito melhor do que a do Chrome.</div>
+    <div class="warn">A voz Gemini só funciona com chave do Gemini (AIza…). Se a quota gratuita acabar, a A.P.IAv1 passa sozinha para a voz do browser. No browser, o Microsoft Edge tem a voz "Raquel (Natural)" de Portugal, muito melhor do que a do Chrome.</div>
   </div>
   <div class="cfg-sec"><h4>MICROSOFT 365 · E-MAIL E AGENDA DE TRABALHO (VIA CLAUDE)</h4>
     <ol class="howto">
       <li>Abre a <b>app Claude no PC</b> (a conta que já tem o conector <b>Microsoft 365</b> ligado). Não precisas de Azure nem de administrador.</li>
-      <li>Cria uma <b>tarefa agendada</b> (Cowork → Tarefas agendadas), com acesso à <b>pasta da PauloIA</b> (ex.: C:\\Rissa), a repetir <b>de hora a hora</b> nos dias úteis.</li>
+      <li>Cria uma <b>tarefa agendada</b> (Cowork → Tarefas agendadas), com acesso à <b>pasta da A.P.IAv1</b> (ex.: C:\\Rissa), a repetir <b>de hora a hora</b> nos dias úteis.</li>
       <li>Clica <b>COPIAR PEDIDO</b> e cola-o como instrução da tarefa.</li>
-      <li>Corre a tarefa uma vez: aparece o ficheiro <code>m365.json</code> na pasta e a PauloIA começa a usá-lo.</li>
+      <li>Corre a tarefa uma vez: aparece o ficheiro <code>m365.json</code> na pasta e a A.P.IAv1 começa a usá-lo.</li>
     </ol>
     <textarea id="cMsPrompt" readonly style="min-height:120px;font-size:12px"></textarea>
     <div class="row" style="justify-content:flex-start"><button class="btn" id="msCopy" type="button">COPIAR PEDIDO</button></div>
@@ -2223,7 +2224,7 @@ function openCfg() {
       <label class="chk"><input type="checkbox" id="cMsCal"> Usar para a agenda</label>
     </div>
     <div id="msBox"></div>
-    <div class="warn">Só leitura. O Claude lê o Outlook com o conector já aprovado pela FTP Porto e grava o resumo neste PC (m365.json). A PauloIA nunca envia, responde, apaga nem marca nada.</div>
+    <div class="warn">Só leitura. O Claude lê o Outlook com o conector já aprovado pela FTP Porto e grava o resumo neste PC (m365.json). A A.P.IAv1 nunca envia, responde, apaga nem marca nada.</div>
   </div>
   <div class="cfg-sec"><h4>AGENDAS GOOGLE / iCAL</h4>
     <ol class="howto"><li>Google Agenda no computador → ⚙ Definições → clica na agenda à esquerda → <b>Integrar agenda</b> → copia o <b>Endereço secreto no formato iCal</b>.</li></ol>
@@ -2235,10 +2236,10 @@ function openCfg() {
   <div class="cfg-sec"><h4>GMAIL (IMAP)</h4>
     <ol class="howto">
       <li><b>Primeiro</b> ativa a verificação em 2 passos em <a href="https://myaccount.google.com/security" target="_blank" rel="noopener">myaccount.google.com/security</a>. Sem ela o Google não deixa criar senhas de app.</li>
-      <li><b>Depois</b> vai a <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">myaccount.google.com/apppasswords</a>, cria uma app chamada <code>PauloIA</code> e copia a senha de 16 letras.</li>
+      <li><b>Depois</b> vai a <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">myaccount.google.com/apppasswords</a>, cria uma app chamada <code>A.P.IAv1</code> e copia a senha de 16 letras.</li>
       <li>Cola-a aqui. Não é a tua senha normal do Gmail.</li>
     </ol>
-    <div class="warn">A senha de app fica só neste browser e viaja apenas até à antena local e ao Google. Para a triagem, remetente, assunto e um trecho de cada e-mail vão para a IA (Gemini ou Claude). A PauloIA só LÊ: nunca envia, responde, apaga ou marca nada.</div>
+    <div class="warn">A senha de app fica só neste browser e viaja apenas até à antena local e ao Google. Para a triagem, remetente, assunto e um trecho de cada e-mail vão para a IA (Gemini ou Claude). A A.P.IAv1 só LÊ: nunca envia, responde, apaga ou marca nada.</div>
     <div id="imapRows"></div>
     <div class="row" style="justify-content:flex-start"><button class="btn" id="addImap" type="button">+ ADICIONAR CONTA</button></div>
     <div class="grid2">
@@ -2497,7 +2498,7 @@ function bubble(who, text, me) {
 }
 const _setUser = setUser, _setBot = setBot;
 setUser = function (t) { _setUser(t); bubble("TU", t, true); };
-setBot = function (t) { _setBot(t); bubble(CONFIG.name.toUpperCase(), t, false); };
+setBot = function (t) { _setBot(t); bubble(CONFIG.name, t, false); };
 
 function refreshHeader() {
   const d = new Date().toLocaleDateString("pt-PT", { weekday: "long", day: "numeric", month: "long", year: "numeric" });

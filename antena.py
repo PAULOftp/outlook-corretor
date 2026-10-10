@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-Antena da PauloIA: servidor local (só 127.0.0.1) que serve a página e vai buscar
+Antena da A.P.IAv1: servidor local (só 127.0.0.1) que serve a página e vai buscar
 agenda, e-mails e notícias em nome do browser. Apenas a biblioteca padrão do Python.
 
 Rotas:
-  GET  /                    -> pauloia.html
+  GET  /                    -> apiav1.html
   GET  /api/ping            -> estado da antena e da sincronização Microsoft 365
   GET  /proxy?url=...       -> busca ICS/RSS (allowlist de domínios)
   POST /emails              -> e-mails via IMAP (só leitura, BODY.PEEK)
@@ -245,7 +245,7 @@ def _mask(path):
 
 
 class Antena(BaseHTTPRequestHandler):
-    server_version = "AntenaPauloIA/1.0"
+    server_version = "AntenaAPIAv1/1.0"
 
     def log_message(self, fmt, *args):  # nunca escreve links secretos nem credenciais
         sys.stderr.write("  · %s %s\n" % (self.command, _mask(self.path)))
@@ -352,7 +352,7 @@ class Antena(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def _static(self, path):
-        name = urllib.parse.unquote(path.lstrip("/")) or "pauloia.html"
+        name = urllib.parse.unquote(path.lstrip("/")) or "apiav1.html"
         ext = os.path.splitext(name)[1].lower()
         full = os.path.join(BASE, name)
         if "/" in name or "\\" in name or name.startswith(".") or ext not in STATIC or not os.path.isfile(full):
@@ -373,15 +373,15 @@ def main():
     except OSError:
         say("\n  ✗ A porta %d já está ocupada." % PORT)
         say("    Provavelmente a antena já está a correr noutra janela (ou ficou aberto o servidor antigo).")
-        say("    Fecha essa janela e corre o iniciar-pauloia.bat outra vez.\n")
+        say("    Fecha essa janela e corre o iniciar-apiav1.bat outra vez.\n")
         try:
             input("  Carrega em Enter para fechar...")
         except EOFError:
             pass
         sys.exit(1)
     say("")
-    say("  ⚡ ANTENA DA PAULOIA ONLINE — porta %d (só neste PC)." % PORT)
-    say("     Abre http://localhost:%d/pauloia.html  ·  Mantém esta janela aberta." % PORT)
+    say("  ⚡ ANTENA DA A.P.IAv1 ONLINE — porta %d (só neste PC)." % PORT)
+    say("     Abre http://localhost:%d/apiav1.html  ·  Mantém esta janela aberta." % PORT)
     say("")
     try:
         srv.serve_forever()
