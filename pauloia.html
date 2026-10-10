@@ -588,6 +588,7 @@ function pickVoice() {
     let s = l === "pt-pt" ? 4 : l === "pt-br" ? 2 : 1;
     if (F.test(v.name)) s += wantF ? 5 : -5;
     if (M.test(v.name)) s += wantF ? -5 : 5;
+    if (/natural|online|neural/i.test(v.name)) s += 3; // vozes neurais (ex.: Microsoft Raquel Online no Edge) soam muito melhor
     if (s > bs) { bs = s; best = v; }
   }
   return best;
@@ -1144,7 +1145,8 @@ const DEF = {
   digest: { cidade: "Avanca", clima: true, tamanho: "curto", auto: true, voz: true,
             conteudo: { agenda: true, emails: true, noticias: true, foco: true } },
   engine: { nivel: "equilibrado", economia: true },
-  learn: { emails: true }
+  learn: { emails: true },
+  voz: { motor: "gemini", voz: "Kore", modelo: "", estilo: "Lê em português europeu de Portugal, com sotaque de Lisboa e nunca brasileiro, num tom natural, caloroso e descontraído" }
 };
 function loadCfg(key, def) {
   const v = jget(key, null);
@@ -1156,7 +1158,8 @@ const cfg = {
   news: loadCfg("jarvis_news_cfg", DEF.news),
   dig: loadCfg("jarvis_digest_cfg", DEF.digest),
   eng: loadCfg("jarvis_engine", DEF.engine),
-  learn: loadCfg("jarvis_learn_cfg", DEF.learn)
+  learn: loadCfg("jarvis_learn_cfg", DEF.learn),
+  voz: loadCfg("jarvis_voice_cfg", DEF.voz)
 };
 
 /* ---------------- Motor: escreve no mesmo CONFIG da Parte 1 ---------------- */
@@ -1219,7 +1222,7 @@ let stopLong = false;
 async function sayLong(text) {
   const chunks = [];
   for (const s of cleanForSpeech(text).split(/(?<=[.!?;:])\s+/)) {
-    if (chunks.length && (chunks[chunks.length - 1] + " " + s).length < 220) chunks[chunks.length - 1] += " " + s;
+    if (chunks.length && (chunks[chunks.length - 1] + " " + s).length < (ttsCloud() ? 1400 : 220)) chunks[chunks.length - 1] += " " + s;
     else if (s) chunks.push(s);
   }
   stopLong = false;
@@ -1236,8 +1239,85 @@ async function sayLong(text) {
   setState(idleState());
   safeStart();
 }
-$("#stopBtn").addEventListener("click", () => { stopLong = true; });
-$("#orb").addEventListener("click", () => { if (uiState === "speaking") stopLong = true; });
+$("#stopBtn").addEventListener("click", () => { stopLong = true; stopCloud(); });
+$("#orb").addEventListener("click", () => { if (uiState === "speaking") { stopLong = true; stopCloud(); } });
+$("#textInput").addEventListener("keydown", e => { if (e.key === "Enter") stopCloud(); });
+
+/* ---------------- Voz natural: Gemini TTS (envolve speak() da Parte 1; recua para a voz do browser) ---------------- */
+const VOZES = [["Kore", "Kore · feminina, firme"], ["Aoede", "Aoede · feminina, leve"], ["Leda", "Leda · feminina, jovem"], ["Zephyr", "Zephyr · feminina, luminosa"],
+  ["Despina", "Despina · feminina, suave"], ["Callirrhoe", "Callirrhoe · feminina, descontraída"], ["Charon", "Charon · masculina, informativa"], ["Puck", "Puck · masculina, animada"], ["Orus", "Orus · masculina, firme"]];
+const TTS_MODELS = ["gemini-3.1-flash-tts-preview", "gemini-2.5-flash-preview-tts"];
+let audioCtx = null, curSrc = null, cloudStop = false, ttsBlockedUntil = 0, ttsOkModel = null;
+const ttsCache = new Map();
+function ttsCloud() {
+  const k = getKey();
+  return cfg.voz.motor === "gemini" && !!k && provider(k) === "gemini" && Date.now() > ttsBlockedUntil;
+}
+async function geminiTTS(text) {
+  if (ttsCache.has(text)) return ttsCache.get(text);
+  const body = JSON.stringify({
+    contents: [{ parts: [{ text: (cfg.voz.estilo ? cfg.voz.estilo + ": " : "") + text }] }],
+    generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: cfg.voz.voz || "Kore" } } } }
+  });
+  const models = cfg.voz.modelo ? [cfg.voz.modelo] : ttsOkModel ? [ttsOkModel] : TTS_MODELS;
+  let st = 0;
+  for (const m of models) {
+    const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + m + ":generateContent", {
+      method: "POST", headers: { "x-goog-api-key": getKey(), "content-type": "application/json" }, body
+    });
+    if (res.ok) {
+      const d = await res.json();
+      const part = ((d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts) || []).find(x => x.inlineData);
+      if (!part) throw Object.assign(new Error("resposta sem áudio"), { status: 0 });
+      ttsOkModel = m;
+      const out = { b64: part.inlineData.data, rate: +(((part.inlineData.mimeType || "").match(/rate=(\d+)/) || [])[1] || 24000) };
+      if (text.length < 80) ttsCache.set(text, out); // frases curtas repetidas ("Diz, Paulo.") não gastam quota
+      return out;
+    }
+    st = res.status;
+    if (st !== 404 && st !== 400) break;
+  }
+  throw Object.assign(new Error("voz Gemini respondeu " + st), { status: st });
+}
+function playPcm(a) {
+  return new Promise(resolve => {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    const bin = atob(a.b64), n = bin.length >> 1;
+    const buf = audioCtx.createBuffer(1, Math.max(1, n), a.rate || 24000), ch = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) { let v = bin.charCodeAt(2 * i) | (bin.charCodeAt(2 * i + 1) << 8); if (v >= 32768) v -= 65536; ch[i] = v / 32768; } // PCM 16-bit
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf;
+    src.connect(audioCtx.destination);
+    curSrc = src;
+    let done = false;
+    const fin = () => { if (done) return; done = true; clearTimeout(t); if (curSrc === src) curSrc = null; resolve(); };
+    const t = setTimeout(fin, buf.duration * 1000 + 1500); // rede de segurança se o áudio estiver bloqueado
+    src.onended = fin;
+    src.start();
+  });
+}
+function stopCloud() { cloudStop = true; if (curSrc) { try { curSrc.stop(); } catch (e) {} curSrc = null; } }
+const _speak = speak;
+speak = async function (text) {
+  if (text && ttsCloud()) {
+    cloudStop = false;
+    stopCloud(); cloudStop = false;
+    if (window.speechSynthesis) speechSynthesis.cancel();
+    try {
+      const a = await geminiTTS(cleanForSpeech(text));
+      if (!cloudStop) await playPcm(a);
+      return;
+    } catch (e) {
+      console.warn("Voz Gemini indisponível; uso a voz do browser", e);
+      if (e.status === 429 || e.status === 403 || e.status === 400 || e.status === 404) {
+        ttsBlockedUntil = Date.now() + (e.status === 429 ? 10 : 60) * 60000;
+        showStatus(e.status === 429 ? "QUOTA DA VOZ GEMINI ESGOTADA · A USAR A VOZ DO BROWSER" : "VOZ GEMINI INDISPONÍVEL · A USAR A VOZ DO BROWSER", true, 6000);
+      }
+    }
+  }
+  return _speak(text);
+};
 
 /* ---------------- Antena ---------------- */
 class AntOff extends Error {}
@@ -2092,6 +2172,15 @@ function openCfg() {
       <label class="chk"><input type="checkbox" id="cEco"> Modo economia (comandos locais, cache, 1 pedido por lote)</label>
     </div>
   </div>
+  <div class="cfg-sec"><h4>VOZ</h4>
+    <div class="grid2">
+      <label>MOTOR DE VOZ<select id="cVozMotor"><option value="gemini">Gemini · natural (usa a chave Gemini, quota gratuita)</option><option value="browser">Browser · grátis e ilimitada (mais robótica)</option></select></label>
+      <label>VOZ GEMINI<select id="cVozVoz">${VOZES.map(([k, l]) => `<option value="${k}">${l}</option>`).join("")}</select></label>
+    </div>
+    <label>ESTILO (instrução de sotaque e tom)<input id="cVozEstilo"></label>
+    <div class="row" style="justify-content:flex-start"><button class="btn" id="vozTest" type="button">▶ OUVIR TESTE</button></div>
+    <div class="warn">A voz Gemini só funciona com chave do Gemini (AIza…). Se a quota gratuita acabar, a PauloIA passa sozinha para a voz do browser. No browser, o Microsoft Edge tem a voz "Raquel (Natural)" de Portugal, muito melhor do que a do Chrome.</div>
+  </div>
   <div class="cfg-sec"><h4>MICROSOFT 365 · E-MAIL E AGENDA DE TRABALHO (VIA CLAUDE)</h4>
     <ol class="howto">
       <li>Abre a <b>app Claude no PC</b> (a conta que já tem o conector <b>Microsoft 365</b> ligado). Não precisas de Azure nem de administrador.</li>
@@ -2151,6 +2240,8 @@ function openCfg() {
   <div class="row"><button class="btn ghost" id="cfgCancel" type="button">CANCELAR</button><button class="btn" id="cfgSave" type="button">GUARDAR</button></div>`;
   const v = (id, val) => { $("#" + id).value = val == null ? "" : val; }, ck = (id, val) => { $("#" + id).checked = !!val; };
   v("cNivel", c.eng.nivel); ck("cEco", c.eng.economia);
+  v("cVozMotor", c.voz.motor); v("cVozVoz", c.voz.voz); v("cVozEstilo", c.voz.estilo);
+  $("#vozTest").onclick = () => { saveCfg(); ttsBlockedUntil = 0; if (!busy) say("Olá " + addr + ", esta é a minha nova voz. Soa melhor assim?"); };
   v("cMsPrompt", msPrompt()); v("cMsNome", c.mail.m365.apelido); v("cMsCor", c.mail.m365.cor);
   ck("cMsMail", c.mail.m365.ativo); ck("cMsCal", c.cal.outlook.ativo);
   v("cDias", String(+c.cal.dias ? 7 : 0));
@@ -2185,6 +2276,8 @@ function readRows(sel, keys) {
 function saveCfg() {
   const val = id => $("#" + id).value.trim(), on = id => $("#" + id).checked, num = (id, d, lo, hi) => Math.min(hi, Math.max(lo, parseInt(val(id), 10) || d));
   cfg.eng = { nivel: val("cNivel"), economia: on("cEco") };
+  cfg.voz = { ...cfg.voz, motor: val("cVozMotor"), voz: val("cVozVoz"), estilo: val("cVozEstilo") || DEF.voz.estilo };
+  jset("jarvis_voice_cfg", cfg.voz);
   const nome = val("cMsNome") || "Trabalho", cor = val("cMsCor") || "#3b82f6";
   cfg.mail.m365 = { ativo: on("cMsMail"), apelido: nome, cor };
   cfg.cal.outlook = { ativo: on("cMsCal"), nome, cor };
@@ -2394,6 +2487,7 @@ $("#apiKey").addEventListener("change", () => { if (getKey()) keyBox.classList.r
 document.querySelectorAll(".cmd").forEach(b => b.addEventListener("click", () => {
   if (busy && uiState === "thinking") return;
   stopLong = true;
+  stopCloud();
   if (window.speechSynthesis) speechSynthesis.cancel();
   setTimeout(() => processCommand(b.dataset.say), 60);
 }));
