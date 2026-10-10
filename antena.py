@@ -151,6 +151,26 @@ def ms_calendar(start, end):
     return 200, {"eventos": events, "atualizado": s.get("atualizado")}
 
 
+# ---------------------------------------------------------------- Chave da API num ficheiro .txt da pasta
+KEY_RE = re.compile(r"(AIza[0-9A-Za-z_\-]{30,}|sk-ant-[0-9A-Za-z_\-]{20,})")
+
+
+def read_key_file():
+    """Procura a chave (Gemini AIza… ou Anthropic sk-ant-…) em qualquer .txt pequeno da pasta (ex.: chaveapi.txt)."""
+    for name in sorted(os.listdir(BASE)):
+        full = os.path.join(BASE, name)
+        if not name.lower().endswith(".txt") or not os.path.isfile(full) or os.path.getsize(full) > 10000:
+            continue
+        try:
+            with open(full, "r", encoding="utf-8-sig", errors="ignore") as f:
+                m = KEY_RE.search(f.read())
+        except OSError:
+            continue
+        if m:
+            return 200, {"chave": m.group(1), "ficheiro": name}
+    return 404, {"erro": "Nenhum ficheiro .txt com a chave da API na pasta."}
+
+
 # ---------------------------------------------------------------- YouTube (pesquisa de música, sem chave)
 YT_HEADERS = {"User-Agent": UA, "Accept-Language": "pt-PT,pt;q=0.9", "Cookie": "SOCS=CAI; CONSENT=YES+cb"}
 
@@ -340,7 +360,9 @@ class Antena(BaseHTTPRequestHandler):
         q = urllib.parse.parse_qs(u.query)
         try:
             if u.path == "/api/ping":
-                return self._json(200, {"ok": True, "versao": 2, "ms": ms_state()})
+                return self._json(200, {"ok": True, "versao": 3, "ms": ms_state()})
+            if u.path == "/api/chave":
+                return self._json(*read_key_file())
             if u.path == "/proxy":
                 return self._proxy((q.get("url") or [""])[0])
             if u.path == "/api/youtube":

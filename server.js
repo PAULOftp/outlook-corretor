@@ -102,6 +102,20 @@ function msCalendar(start, end) {
   return [200, { eventos, atualizado: s.atualizado || null }];
 }
 
+/* ------------------------------------------------------------ Chave da API num ficheiro .txt da pasta (ex.: chaveapi.txt) */
+function readKeyFile() {
+  const re = /(AIza[0-9A-Za-z_\-]{30,}|sk-ant-[0-9A-Za-z_\-]{20,})/;
+  for (const name of fs.readdirSync(__dirname).sort()) {
+    const full = path.join(__dirname, name);
+    try {
+      if (!/\.txt$/i.test(name) || !fs.statSync(full).isFile() || fs.statSync(full).size > 10000) continue;
+      const m = fs.readFileSync(full, "utf8").match(re);
+      if (m) return [200, { chave: m[1], ficheiro: name }];
+    } catch (e) {}
+  }
+  return [404, { erro: "Nenhum ficheiro .txt com a chave da API na pasta." }];
+}
+
 /* ------------------------------------------------------------ YouTube (pesquisa de música, sem chave) */
 async function youtubeSearch(qs) {
   qs = String(qs || "").trim().slice(0, 120);
@@ -350,7 +364,8 @@ const server = http.createServer(async (req, res) => {
   const u = new URL(req.url, "http://" + HOST + ":" + PORT);
   try {
     if (req.method === "GET") {
-      if (u.pathname === "/api/ping") return send(req, res, 200, { ok: true, versao: 2, ms: msState() });
+      if (u.pathname === "/api/ping") return send(req, res, 200, { ok: true, versao: 3, ms: msState() });
+      if (u.pathname === "/api/chave") return send(req, res, ...readKeyFile());
       if (u.pathname === "/proxy") return await proxy(req, res, u.searchParams.get("url") || "");
       if (u.pathname === "/api/youtube") return send(req, res, ...(await youtubeSearch(u.searchParams.get("q"))));
       if (u.pathname === "/api/ms/status") return send(req, res, 200, msState());
