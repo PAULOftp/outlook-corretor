@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>A.P.IAv1</title>
+<link rel="manifest" href="apiav1.webmanifest">
+<link rel="icon" href="apiav1-192.png">
+<meta name="theme-color" content="#03070d">
 <style>
 :root{
   --theme:#00c8ff; --violet:#8b5cf6; --bg:#03070d; --panel:rgba(6,18,30,.78);
@@ -298,6 +301,22 @@ body.idle .hud #status:not(.err){color:#ff8a7a}
 .lcard select{padding:6px;font-size:13px}
 #learnStatus{font-family:var(--mono);font-size:12px;color:var(--theme);min-height:1.4em;margin:4px 0 10px}
 #learnStatus.err{color:var(--err)}
+
+/* ================= Rosto de partículas + música ================= */
+#faceCv{position:absolute;left:-40px;top:-40px;width:calc(100% + 80px);height:calc(100% + 80px);cursor:pointer;display:none}
+body.face #faceCv{display:block}
+body.face .hud-orb .orb,body.face .hud-orb .orbit{opacity:0;pointer-events:none}
+.musicbar{margin-top:14px;display:flex;gap:16px;align-items:center;border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:12px 14px;animation:rise .4s ease both}
+.musicbar[hidden]{display:none}
+.mframe{flex:none;width:256px;height:144px;border-radius:6px;overflow:hidden;background:#000;border:1px solid var(--line)}
+.mframe iframe{width:100%;height:100%;border:0;display:block}
+.minfo{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.mlbl{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--theme)}
+.mtitle{font-size:16px;overflow-wrap:anywhere}
+.msub{font-size:12px;color:var(--muted)}
+.mbtns{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.mbtns .btn{padding:6px 10px;font-size:14px}
+@media (max-width:600px){.musicbar{flex-direction:column;align-items:stretch}.mframe{width:100%;height:auto;aspect-ratio:16/9}}
 </style>
 </head>
 <body>
@@ -325,6 +344,7 @@ body.idle .hud #status:not(.err){color:#ff8a7a}
       <span class="upd" id="updLine"></span>
       <span class="chip" id="keyChip" title="Clica para mudar a chave da API">SEM CHAVE</span>
       <span class="chip" id="antChip" title="Antena local">ANTENA …</span>
+      <span class="chip" id="vozChip" title="Voz em uso">VOZ …</span>
       <span class="chip act" id="actChip" hidden title="E-mails a pedir ação">⚡ 0 AÇÃO</span>
       <button class="icon-btn cfg-btn" id="cfgBtn" type="button" title="Definições">⚙</button>
     </div>
@@ -336,6 +356,7 @@ body.idle .hud #status:not(.err){color:#ff8a7a}
   <section class="hud">
     <i class="cnr tl"></i><i class="cnr tr"></i><i class="cnr bl"></i><i class="cnr br"></i>
     <div class="hud-orb">
+      <canvas id="faceCv" aria-hidden="true" title="Clica para eu te ouvir"></canvas>
       <div class="orbit o3"><b></b><b></b></div><div class="orbit o1"><b></b></div><div class="orbit o2"><b></b></div>
       <div class="orb" id="orb" title="Clica para eu te ouvir">
         <div class="ring w w1"></div><div class="ring w w2"></div><div class="ring w w3"></div>
@@ -375,6 +396,23 @@ body.idle .hud #status:not(.err){color:#ff8a7a}
     <button class="cmd" type="button" data-say="próximo compromisso">⏭ PRÓXIMO</button>
     <button class="cmd" type="button" data-say="agenda da semana">◷ SEMANA</button>
     <button class="cmd" type="button" data-say="notícias">◉ NOTÍCIAS</button>
+    <button class="cmd" type="button" data-say="põe música para trabalhar">♪ MÚSICA</button>
+  </section>
+
+  <section class="musicbar" id="musicBar" hidden>
+    <div class="mframe" id="ytBox"></div>
+    <div class="minfo">
+      <div class="mlbl">♪ A TOCAR · YOUTUBE</div>
+      <div class="mtitle" id="ytTitle"></div>
+      <div class="msub" id="ytSub"></div>
+      <div class="mbtns">
+        <button class="btn" id="ytPause" type="button" title="Pausa / continuar">⏯</button>
+        <button class="btn" id="ytNext" type="button" title="Seguinte">⏭</button>
+        <button class="btn" id="ytVolDown" type="button" title="Baixar o volume">🔉</button>
+        <button class="btn" id="ytVolUp" type="button" title="Subir o volume">🔊</button>
+        <button class="btn danger" id="ytStop" type="button" title="Parar">⏹</button>
+      </div>
+    </div>
   </section>
 
   <section class="modules" id="modules">
@@ -1147,7 +1185,7 @@ const DEF = {
             conteudo: { agenda: true, emails: true, noticias: true, foco: true } },
   engine: { nivel: "equilibrado", economia: true },
   learn: { emails: true },
-  voz: { motor: "gemini", voz: "Kore", modelo: "", estilo: "Lê em português europeu de Portugal, com sotaque de Lisboa e nunca brasileiro, num tom natural, caloroso e descontraído" }
+  voz: { avatar: "rosto", motor: "auto", voz: "Kore", modelo: "", estilo: "Lê em português europeu de Portugal, com sotaque de Lisboa e nunca brasileiro, num tom natural, caloroso e descontraído" }
 };
 function loadCfg(key, def) {
   const v = jget(key, null);
@@ -1223,7 +1261,7 @@ let stopLong = false;
 async function sayLong(text) {
   const chunks = [];
   for (const s of cleanForSpeech(text).split(/(?<=[.!?;:])\s+/)) {
-    if (chunks.length && (chunks[chunks.length - 1] + " " + s).length < (ttsCloud() ? 1400 : 220)) chunks[chunks.length - 1] += " " + s;
+    if (chunks.length && (chunks[chunks.length - 1] + " " + s).length < (ttsCloud() ? 3000 : 220)) chunks[chunks.length - 1] += " " + s;
     else if (s) chunks.push(s);
   }
   stopLong = false;
@@ -1248,12 +1286,53 @@ $("#textInput").addEventListener("keydown", e => { if (e.key === "Enter") stopCl
 const VOZES = [["Kore", "Kore · feminina, firme"], ["Aoede", "Aoede · feminina, leve"], ["Leda", "Leda · feminina, jovem"], ["Zephyr", "Zephyr · feminina, luminosa"],
   ["Despina", "Despina · feminina, suave"], ["Callirrhoe", "Callirrhoe · feminina, descontraída"], ["Charon", "Charon · masculina, informativa"], ["Puck", "Puck · masculina, animada"], ["Orus", "Orus · masculina, firme"]];
 const TTS_MODELS = ["gemini-3.1-flash-tts-preview", "gemini-2.5-flash-preview-tts"];
-let audioCtx = null, curSrc = null, cloudStop = false, ttsBlockedUntil = 0, ttsOkModel = null;
-const ttsCache = new Map();
-function ttsCloud() {
-  const k = getKey();
-  return cfg.voz.motor === "gemini" && !!k && provider(k) === "gemini" && Date.now() > ttsBlockedUntil;
+let audioCtx = null, curSrc = null, cloudStop = false, ttsBlockedUntil = 0, ttsOkModel = null, analyser = null, anaBuf = null;
+// Nível da voz (0..1) para animar a boca: real com a voz Gemini, simulado com a voz do browser
+function speechLevel() {
+  if (curSrc && analyser) {
+    analyser.getByteTimeDomainData(anaBuf);
+    let sum = 0;
+    for (let i = 0; i < anaBuf.length; i++) { const d = (anaBuf[i] - 128) / 128; sum += d * d; }
+    return Math.min(1, Math.sqrt(sum / anaBuf.length) * 5);
+  }
+  if (window.speechSynthesis && speechSynthesis.speaking && uiState === "speaking") {
+    const t = performance.now() / 1000;
+    return Math.max(0, 0.42 + 0.33 * Math.sin(t * 17) + 0.22 * Math.sin(t * 7.3));
+  }
+  return 0;
 }
+// Primeira frase sozinha (começa a falar mais depressa); o resto é gerado em paralelo
+function ttsParts(t) {
+  if (t.length <= 170) return [t];
+  const sents = t.split(/(?<=[.!?;:])\s+/);
+  let first = sents.shift();
+  while (first.length < 40 && sents.length) first += " " + sents.shift();
+  const rest = sents.join(" ").trim();
+  return rest ? [first, rest] : [first];
+}
+const ttsCache = new Map();
+function naturalBrowserVoice() { return !!voice && /natural|online|neural/i.test(voice.name) && /^pt/i.test(voice.lang); }
+function ttsCloud() {
+  const k = getKey(), m = cfg.voz.motor || "auto";
+  if (m === "browser" || (m === "auto" && naturalBrowserVoice())) return false; // a voz Natural do Edge é instantânea e sem quota
+  return !!k && provider(k) === "gemini" && Date.now() > ttsBlockedUntil;
+}
+function refreshVoiceChip() {
+  const c = hasEl("vozChip");
+  if (!c) return;
+  const blocked = Date.now() < ttsBlockedUntil, nat = naturalBrowserVoice();
+  let txt, cls = "ok", tip;
+  if (ttsCloud()) { txt = "VOZ GEMINI · " + (cfg.voz.voz || "Kore").toUpperCase(); tip = "Voz natural do Gemini (gasta quota gratuita)"; }
+  else if (nat) { txt = "VOZ NATURAL"; tip = voice.name; }
+  else {
+    txt = blocked ? "VOZ BROWSER · SEM QUOTA" : "VOZ BROWSER"; cls = "off";
+    tip = (voice ? voice.name : "voz do sistema") + (blocked ? " — a quota da voz Gemini esgotou; volta a tentar às " + hm(new Date(ttsBlockedUntil)) : "") +
+      ". Para uma voz natural grátis e ilimitada, abre a A.P.IAv1 no Microsoft Edge (iniciar-apiav1.bat).";
+  }
+  c.textContent = txt; c.title = tip;
+  c.classList.toggle("ok", cls === "ok"); c.classList.toggle("off", cls === "off");
+}
+setInterval(refreshVoiceChip, 3000);
 async function geminiTTS(text) {
   if (ttsCache.has(text)) return ttsCache.get(text);
   const body = JSON.stringify({
@@ -1289,7 +1368,8 @@ function playPcm(a) {
     for (let i = 0; i < n; i++) { let v = bin.charCodeAt(2 * i) | (bin.charCodeAt(2 * i + 1) << 8); if (v >= 32768) v -= 65536; ch[i] = v / 32768; } // PCM 16-bit
     const src = audioCtx.createBufferSource();
     src.buffer = buf;
-    src.connect(audioCtx.destination);
+    if (!analyser) { analyser = audioCtx.createAnalyser(); analyser.fftSize = 512; anaBuf = new Uint8Array(analyser.fftSize); analyser.connect(audioCtx.destination); }
+    src.connect(analyser); // o analisador mede o volume para mexer os lábios do rosto
     curSrc = src;
     let done = false;
     const fin = () => { if (done) return; done = true; clearTimeout(t); if (curSrc === src) curSrc = null; resolve(); };
@@ -1317,6 +1397,7 @@ function isEcho(heard) {
 const _handleHeard = handleHeard;
 handleHeard = function (raw) {
   if (isEcho(raw)) { console.info("Eco ignorado:", raw); return; }
+  if (MU.playing && !MU.paused && !splitWake(raw).hit) return;
   return _handleHeard(raw);
 };
 const _speak = speak;
@@ -1324,26 +1405,40 @@ speak = async function (text) {
   lastSpoken = (Date.now() - lastSpokenAt < 20000 ? lastSpoken + " " : "") + (text || "");
   lastSpokenAt = Date.now();
   muteMic();
-  try { return await speakInner(text); } finally { lastSpokenAt = Date.now(); ignoreUntil = Date.now() + 1500; }
+  musicDuck(true);
+  try { return await speakInner(text); } finally { lastSpokenAt = Date.now(); ignoreUntil = Date.now() + 1500; musicDuck(false); }
 };
 async function speakInner(text) {
   if (text && ttsCloud()) {
     cloudStop = false;
     stopCloud(); cloudStop = false;
     if (window.speechSynthesis) speechSynthesis.cancel();
+    const parts = ttsParts(cleanForSpeech(text));
+    const jobs = parts.map(pt => geminiTTS(pt));
+    jobs.forEach(j => j.catch(() => {}));
     try {
-      const a = await geminiTTS(cleanForSpeech(text));
-      if (!cloudStop) await playPcm(a);
+      for (let i = 0; i < jobs.length; i++) {
+        let a;
+        try { a = await jobs[i]; }
+        catch (e) { if (i === 0) throw e; noteTtsError(e); return _speak(parts.slice(i).join(" ")); } // resto pela voz do browser
+        if (cloudStop) return;
+        await playPcm(a);
+        if (cloudStop) return;
+      }
       return;
     } catch (e) {
-      console.warn("Voz Gemini indisponível; uso a voz do browser", e);
-      if (e.status === 429 || e.status === 403 || e.status === 400 || e.status === 404) {
-        ttsBlockedUntil = Date.now() + (e.status === 429 ? 10 : 60) * 60000;
-        showStatus(e.status === 429 ? "QUOTA DA VOZ GEMINI ESGOTADA · A USAR A VOZ DO BROWSER" : "VOZ GEMINI INDISPONÍVEL · A USAR A VOZ DO BROWSER", true, 6000);
-      }
+      noteTtsError(e);
     }
   }
   return _speak(text);
+}
+function noteTtsError(e) {
+  console.warn("Voz Gemini indisponível; uso a voz do browser", e);
+  if (e.status === 429 || e.status === 403 || e.status === 400 || e.status === 404) {
+    ttsBlockedUntil = Date.now() + 10 * 60000;
+    refreshVoiceChip();
+    showStatus(e.status === 429 ? "QUOTA DA VOZ GEMINI ESGOTADA · A USAR A VOZ DO BROWSER" : "VOZ GEMINI INDISPONÍVEL · A USAR A VOZ DO BROWSER", true, 6000);
+  }
 }
 
 /* ---------------- Antena ---------------- */
@@ -2078,6 +2173,8 @@ const RE_MAIL = /\b(e mails?|emails?|mails?|correio|caixa de entrada)\b/;
 async function localCommand(text) {
   const n = norm(text), short = n.split(" ").length <= 8, eco = cfg.eng.economia;
   const go = async (tab, fn) => { setUser(text); if (tab) switchTab(tab); const msg = await working(fn()); await sayLong(msg); return true; };
+  // Música (YouTube): sempre local
+  if (await musicCommand(text, n)) return true;
   // Ações: funcionam sempre
   if (/^(bom dia|bons dias)\b/.test(n) || (short && /\b(digest|briefing)\b/.test(n))) { setUser(text); await runDigest({}); return true; }
   if (/\batualiza\w*\b/.test(n) && RE_MAIL.test(n)) return go("emails", async () => { await loadEmails(true); return "E-mails atualizados. " + sayActions(true); });
@@ -2116,6 +2213,7 @@ buildSystem = function () {
   L.push("MÓDULOS: tens acesso à agenda do " + addr + " (Outlook e agendas iCal), aos e-mails (Office 365 e Gmail, triados em AÇÃO, INFO e RUÍDO), a um radar de notícias (temas: " +
     cfg.news.temas.map(t => t.nome).join(", ") + ") e ao Morning Digest. Comandos de voz que ele pode usar: \"a minha agenda\", \"próximo compromisso\", \"agenda da semana\", " +
     "\"os meus e-mails\", \"tenho e-mails importantes?\", \"notícias\", \"notícias de <tema>\", \"bom dia\", \"atualizar e-mails\", \"atualizar notícias\". " +
+    "Também pões música do YouTube a tocar (\"põe música de <artista>\", \"pausa a música\", \"próxima música\", \"aumenta o volume\", \"para a música\"). " +
     "Também aprendes sozinha: com as conversas, com os e-mails (factos sobre a FTP Porto) e com o LinkedIn e o Facebook que ele importar no separador APRENDER; esses factos aparecem como \"Aprendido\" no Second Brain. Se ele perguntar o que sabes fazer, explica isto de forma breve e falada.");
   L.push("Agenda de hoje: " + compactDay(byDay.get(dayKey(new Date()))));
   L.push("Agenda de amanhã: " + compactDay(byDay.get(dayKey(addDays(new Date(), 1)))));
@@ -2201,12 +2299,20 @@ function openCfg() {
   </div>
   <div class="cfg-sec"><h4>VOZ</h4>
     <div class="grid2">
-      <label>MOTOR DE VOZ<select id="cVozMotor"><option value="gemini">Gemini · natural (usa a chave Gemini, quota gratuita)</option><option value="browser">Browser · grátis e ilimitada (mais robótica)</option></select></label>
+      <label>MOTOR DE VOZ<select id="cVozMotor"><option value="auto">Automático · voz Natural do Edge se houver, senão Gemini</option><option value="gemini">Gemini · natural (usa a chave Gemini, quota gratuita)</option><option value="browser">Browser · grátis e ilimitada</option></select></label>
+      <label>AVATAR<select id="cAvatar"><option value="rosto">Rosto de partículas (mexe os lábios)</option><option value="esfera">Esfera (reator)</option></select></label>
       <label>VOZ GEMINI<select id="cVozVoz">${VOZES.map(([k, l]) => `<option value="${k}">${l}</option>`).join("")}</select></label>
     </div>
     <label>ESTILO (instrução de sotaque e tom)<input id="cVozEstilo"></label>
     <div class="row" style="justify-content:flex-start"><button class="btn" id="vozTest" type="button">▶ OUVIR TESTE</button></div>
     <div class="warn">A voz Gemini só funciona com chave do Gemini (AIza…). Se a quota gratuita acabar, a A.P.IAv1 passa sozinha para a voz do browser. No browser, o Microsoft Edge tem a voz "Raquel (Natural)" de Portugal, muito melhor do que a do Chrome.</div>
+  </div>
+  <div class="cfg-sec"><h4>DADOS (CÓPIA DE SEGURANÇA)</h4>
+    <div class="row" style="justify-content:flex-start">
+      <button class="btn" id="dataExport" type="button">⬇ EXPORTAR CÓPIA</button>
+      <label class="btn" style="cursor:pointer">⬆ IMPORTAR CÓPIA<input type="file" id="dataImport" accept=".json" hidden></label>
+    </div>
+    <div class="warn">A cópia leva a chave da API, as notas, o que aprendi e as definições (incluindo a senha de app do Gmail). Serve para passar a A.P.IAv1 do Chrome para o Edge ou para outro PC. Guarda-a num sítio seguro.</div>
   </div>
   <div class="cfg-sec"><h4>MICROSOFT 365 · E-MAIL E AGENDA DE TRABALHO (VIA CLAUDE)</h4>
     <ol class="howto">
@@ -2267,7 +2373,27 @@ function openCfg() {
   <div class="row"><button class="btn ghost" id="cfgCancel" type="button">CANCELAR</button><button class="btn" id="cfgSave" type="button">GUARDAR</button></div>`;
   const v = (id, val) => { $("#" + id).value = val == null ? "" : val; }, ck = (id, val) => { $("#" + id).checked = !!val; };
   v("cNivel", c.eng.nivel); ck("cEco", c.eng.economia);
-  v("cVozMotor", c.voz.motor); v("cVozVoz", c.voz.voz); v("cVozEstilo", c.voz.estilo);
+  v("cAvatar", c.voz.avatar || "rosto"); v("cVozMotor", c.voz.motor); v("cVozVoz", c.voz.voz); v("cVozEstilo", c.voz.estilo);
+  $("#dataExport").onclick = () => {
+    const out = {};
+    for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (/^jarvis_|^anthropic_key$/.test(k)) out[k] = localStorage.getItem(k); }
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([JSON.stringify({ app: "A.P.IAv1", data: new Date().toISOString(), chaves: out }, null, 1)], { type: "application/json" }));
+    a.download = "apiav1-copia-" + dayKey(new Date()) + ".json";
+    document.body.appendChild(a); a.click(); a.remove();
+  };
+  $("#dataImport").onchange = async e => {
+    const f = e.target.files[0];
+    if (!f) return;
+    try {
+      const j = JSON.parse(await f.text()), ch = j.chaves || {};
+      const keys = Object.keys(ch).filter(k => /^jarvis_|^anthropic_key$/.test(k));
+      if (!keys.length) throw new Error("ficheiro sem dados da A.P.IAv1");
+      if (!confirm("Importar " + keys.length + " itens? Substitui as notas e definições deste browser.")) return;
+      keys.forEach(k => localStorage.setItem(k, ch[k]));
+      location.reload();
+    } catch (err) { alert("Não consegui importar: " + err.message); }
+  };
   $("#vozTest").onclick = () => { saveCfg(); ttsBlockedUntil = 0; if (!busy) say("Olá " + addr + ", esta é a minha nova voz. Soa melhor assim?"); };
   v("cMsPrompt", msPrompt()); v("cMsNome", c.mail.m365.apelido); v("cMsCor", c.mail.m365.cor);
   ck("cMsMail", c.mail.m365.ativo); ck("cMsCal", c.cal.outlook.ativo);
@@ -2303,7 +2429,7 @@ function readRows(sel, keys) {
 function saveCfg() {
   const val = id => $("#" + id).value.trim(), on = id => $("#" + id).checked, num = (id, d, lo, hi) => Math.min(hi, Math.max(lo, parseInt(val(id), 10) || d));
   cfg.eng = { nivel: val("cNivel"), economia: on("cEco") };
-  cfg.voz = { ...cfg.voz, motor: val("cVozMotor"), voz: val("cVozVoz"), estilo: val("cVozEstilo") || DEF.voz.estilo };
+  cfg.voz = { ...cfg.voz, avatar: val("cAvatar"), motor: val("cVozMotor"), voz: val("cVozVoz"), estilo: val("cVozEstilo") || DEF.voz.estilo };
   jset("jarvis_voice_cfg", cfg.voz);
   const nome = val("cMsNome") || "Trabalho", cor = val("cMsCor") || "#3b82f6";
   cfg.mail.m365 = { ativo: on("cMsMail"), apelido: nome, cor };
@@ -2322,6 +2448,7 @@ function saveCfg() {
   jset("jarvis_engine", cfg.eng); jset("jarvis_calendars", cfg.cal); jset("jarvis_emails", cfg.mail); jset("jarvis_news_cfg", cfg.news); jset("jarvis_digest_cfg", cfg.dig);
   applyEngine();
   scheduleMail();
+  applyAvatar();
 }
 function closeCfg() {
   cm.classList.remove("open");
@@ -2478,6 +2605,215 @@ function renderLearn() {
 $("#fSave").addEventListener("click", () => setTimeout(renderLearn, 0));
 $("#fDelete").addEventListener("click", () => setTimeout(renderLearn, 0));
 
+
+/* =====================================================================
+   AVATAR: rosto de partículas (canvas) que roda, pisca e mexe os lábios ao falar
+   ===================================================================== */
+const faceCv = $("#faceCv"), fctx = faceCv.getContext("2d");
+const FP = [], FE = [];
+(function buildFace() {
+  let seed = 7;
+  const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  const g = (x, y, sx, sy, cx, cy) => Math.exp(-(((x - cx) / sx) ** 2 + ((y - cy) / sy) ** 2));
+  const halfW = y => { const t = (y - 0.02) / 1.08; if (Math.abs(t) >= 1) return 0; let w = 0.74 * Math.sqrt(1 - t * t); if (y > 0.35) w *= 1 - 0.38 * (y - 0.35); return w; };
+  const zAt = (x, y) => {
+    const ax = Math.abs(x);
+    let z = Math.sqrt(Math.max(0, 1 - (x / 0.8) ** 2 - ((y - 0.05) / 1.15) ** 2)) * 0.55;
+    z += 0.30 * g(x, y, 0.085, 0.24, 0, 0.12) * (y > -0.2 ? 1 : 0.4); // nariz
+    z += 0.12 * g(x, y, 0.13, 0.07, 0, 0.33);                        // ponta do nariz
+    z -= 0.10 * g(ax, y, 0.12, 0.07, 0.29, -0.04);                   // órbitas dos olhos
+    z += 0.07 * g(ax, y, 0.2, 0.05, 0.28, -0.17);                    // sobrancelhas
+    z += 0.05 * g(x, y, 0.2, 0.07, 0, 0.56);                         // lábios
+    z += 0.04 * g(ax, y, 0.14, 0.14, 0.42, 0.28);                    // maçãs do rosto
+    z += 0.05 * g(x, y, 0.16, 0.08, 0, 0.86);                        // queixo
+    return z;
+  };
+  const M = 0.56; // linha da boca
+  const add = (x, y, f, role, w, z) => FP.push({ x, y, z: z == null ? zAt(x, y) + (f ? 0.012 : 0) : z, f: f || 0, role: role || 0, w: w || 0, ph: rnd() * 6.28 });
+  const st = 0.052;
+  for (let y = -1.0; y <= 1.08; y += st) for (let x = -0.8; x <= 0.8; x += st) {
+    const jx = x + (rnd() - 0.5) * st * 0.7, jy = y + (rnd() - 0.5) * st * 0.7;
+    if (Math.abs(jx) >= halfW(jy)) continue;
+    let role = 0, w = 0;
+    if (Math.abs(jx) < 0.22 && jy > M - 0.07 && jy < M) { role = 1; w = 1 - Math.abs(jx) / 0.22; }
+    else if (Math.abs(jx) < 0.22 && jy >= M && jy < M + 0.09) { role = 2; w = 1 - Math.abs(jx) / 0.22; }
+    else if (jy >= M + 0.09) { role = 3; w = Math.min(1, (jy - M) / 0.45) * Math.max(0, 1 - Math.abs(jx) / 0.7); }
+    add(jx, jy, 0, role, w);
+  }
+  for (let y = -1.04; y <= 1.08; y += 0.045) { const w = halfW(y); if (w > 0.03) { add(-w, y, 1, y > M + 0.09 ? 3 : 0, 0.3); add(w, y, 1, y > M + 0.09 ? 3 : 0, 0.3); } } // contorno
+  for (let y = -0.98; y <= 1.05; y += 0.05) if (y < M - 0.07 || y > M + 0.1) add(0, y, 1, y > M + 0.09 ? 3 : 0, 0.6); // linha central
+  for (const s of [-1, 1]) {
+    for (let i = 0; i < 22; i++) { const a = i / 22 * Math.PI * 2, sy = Math.sin(a); add(s * 0.29 + 0.11 * Math.cos(a), -0.04 + 0.042 * sy, 1, sy < 0 ? 6 : 0, 1); } // olhos
+    add(s * 0.29, -0.04, 2);                                                                                                       // pupila
+    for (let i = 0; i < 10; i++) add(s * (0.17 + i * 0.026), -0.17 - 0.03 * Math.sin(i / 9 * Math.PI), 1);                         // sobrancelha
+    for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; FP.push({ x: s * (0.76 + 0.05 * Math.cos(a)), y: 0.06 + 0.14 * Math.sin(a), z: -0.15, f: 1, role: 0, w: 0, ph: 0 }); } // orelhas
+    add(s * 0.07, 0.36, 1); add(s * 0.04, 0.385, 1);                                                                               // narinas
+  }
+  for (let y = -0.1; y <= 0.34; y += 0.04) add(0, y, 1);                                                                           // cana do nariz
+  for (let i = 0; i <= 16; i++) {                                                                                                  // lábios
+    const t = i / 8 - 1, x = t * 0.17, bow = 0.012 * Math.cos(t * Math.PI * 2);
+    add(x, M - 0.035 * (1 - t * t) - bow * (1 - t * t), 1, 1, 1 - Math.abs(t) * 0.5);
+    add(x, M - 0.004, 1, 1, (1 - t * t) * 0.3);
+    add(x, M + 0.004, 1, 2, (1 - t * t) * 0.6);
+    add(x, M + 0.045 * (1 - t * t), 1, 2, 1 - t * t);
+  }
+  for (let i = 0; i < 170; i++) { // "cabelo" de faíscas e ligações acima da cabeça
+    const a = -Math.PI / 2 + (rnd() - 0.5) * 2.4, r = 1.05 + rnd() * 0.65;
+    FP.push({ x: Math.cos(a) * r * 0.85, y: Math.sin(a) * r * 0.95 - 0.05, z: (rnd() - 0.4) * 0.6, f: rnd() < 0.25 ? 1 : 0, role: 9, w: 0, ph: rnd() * 6.28 });
+  }
+  // ligações: até 3 vizinhos próximos (rosto) ou 2 mais afastados (faíscas)
+  for (let i = 0; i < FP.length; i++) {
+    const A = FP[i], lim = A.role === 9 ? 0.3 : 0.09, best = [];
+    for (let j = 0; j < FP.length; j++) {
+      if (j === i) continue;
+      const B = FP[j], d = Math.hypot(A.x - B.x, A.y - B.y);
+      if (d < lim) best.push([d, j]);
+    }
+    best.sort((a, b) => a[0] - b[0]);
+    for (const [, j] of best.slice(0, A.role === 9 ? 2 : 3)) if (j > i || FP[j].role === 9) FE.push([i, j]);
+  }
+})();
+function makeSprite(rgb) {
+  const c = document.createElement("canvas"); c.width = c.height = 32;
+  const x = c.getContext("2d"), gr = x.createRadialGradient(16, 16, 0, 16, 16, 16);
+  gr.addColorStop(0, "rgba(255,255,255,1)"); gr.addColorStop(0.25, "rgba(" + rgb + ",0.9)"); gr.addColorStop(1, "rgba(" + rgb + ",0)");
+  x.fillStyle = gr; x.fillRect(0, 0, 32, 32);
+  return c;
+}
+const SPR = { blue: makeSprite("0,200,255"), violet: makeSprite("167,139,250") };
+let faceOn = false, fT0 = performance.now(), mouth = 0, blink = 0, nextBlink = 2;
+function applyAvatar() {
+  faceOn = (cfg.voz.avatar || "rosto") === "rosto";
+  document.body.classList.toggle("face", faceOn);
+  if (faceOn) requestAnimationFrame(faceFrame);
+}
+faceCv.addEventListener("click", () => $("#orb").click());
+function faceFrame(now) {
+  if (!faceOn) return;
+  const dpr = window.devicePixelRatio || 1, cw = faceCv.clientWidth, ch = faceCv.clientHeight;
+  if (!cw) { requestAnimationFrame(faceFrame); return; }
+  if (faceCv.width !== Math.round(cw * dpr)) { faceCv.width = Math.round(cw * dpr); faceCv.height = Math.round(ch * dpr); }
+  const W = faceCv.width, H = faceCv.height, cx = W / 2, cy = H * 0.54, sc = Math.min(W, H) * 0.3, t = (now - fT0) / 1000;
+  const st = uiState, yaw = Math.sin(t * 0.35) * 0.3 + Math.sin(t * 0.13) * 0.08, pitch = Math.sin(t * 0.27) * 0.05 - 0.03;
+  mouth += (speechLevel() - mouth) * 0.35;
+  if (t > nextBlink) { blink = 1; nextBlink = t + 2.5 + Math.random() * 4; }
+  blink = Math.max(0, blink - 0.12);
+  const cyw = Math.cos(yaw), syw = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
+  for (const p of FP) {
+    let x = p.x, y = p.y;
+    if (p.role === 1) y -= mouth * 0.012 * p.w;
+    else if (p.role === 2) y += mouth * 0.075 * p.w;
+    else if (p.role === 3) y += mouth * 0.035 * p.w;
+    else if (p.role === 6) y += blink * 0.07;
+    else if (p.role === 9) { x += Math.sin(t * 0.5 + p.ph) * 0.035; y += Math.cos(t * 0.37 + p.ph) * 0.035; }
+    const x1 = x * cyw + p.z * syw, z1 = -x * syw + p.z * cyw, y1 = y * cp - z1 * sp, z2 = y * sp + z1 * cp, k = 3 / (3 - z2);
+    p.sx = cx + x1 * k * sc; p.sy = cy + y1 * k * sc; p.d = z2;
+  }
+  fctx.clearRect(0, 0, W, H);
+  fctx.globalCompositeOperation = "lighter";
+  const violet = st === "thinking";
+  fctx.lineWidth = Math.max(0.6, sc / 300);
+  fctx.strokeStyle = violet ? "rgba(167,139,250,0.2)" : "rgba(0,200,255," + (0.15 + (st === "speaking" ? mouth * 0.12 : 0)) + ")";
+  fctx.beginPath();
+  for (const [a, b] of FE) { const A = FP[a], B = FP[b]; if (A.d < -0.3 && B.d < -0.3) continue; fctx.moveTo(A.sx, A.sy); fctx.lineTo(B.sx, B.sy); }
+  fctx.stroke();
+  const spr = violet ? SPR.violet : SPR.blue;
+  for (const p of FP) {
+    let a = Math.max(0.12, Math.min(1, (p.d + 0.6) / 1.1)) * (p.f ? 1 : 0.5);
+    if (p.role === 9) a *= 0.5 + 0.5 * Math.sin(t * 1.3 + p.ph);
+    if (st === "listening") a *= 0.75 + 0.45 * Math.max(0, Math.sin(t * 6 - p.y * 6));
+    if (violet) a *= 0.65 + 0.5 * Math.max(0, Math.sin(t * 8 + p.x * 10 + p.y * 7));
+    const r = (p.f === 2 ? 3.4 : p.f ? 2.1 : 1.4) * sc / 160;
+    fctx.globalAlpha = Math.min(1, a);
+    fctx.drawImage(spr, p.sx - r * 2, p.sy - r * 2, r * 4, r * 4);
+  }
+  fctx.globalAlpha = 1;
+  fctx.globalCompositeOperation = "source-over";
+  requestAnimationFrame(faceFrame);
+}
+
+/* =====================================================================
+   MÚSICA: pesquisa no YouTube pela antena e toca num leitor incorporado
+   ===================================================================== */
+const MU = { list: [], i: 0, playing: false, paused: false, vol: 70, errors: 0, frame: null };
+function ytCmd(func, args) { const f = MU.frame; if (f && f.contentWindow) f.contentWindow.postMessage(JSON.stringify({ event: "command", func, args: args || [] }), "*"); }
+function musicDuck(on) { if (MU.playing && !MU.paused) ytCmd("setVolume", [on ? Math.round(MU.vol * 0.2) : MU.vol]); }
+function loadVideo() {
+  const v = MU.list[MU.i];
+  if (!v) return musicStop();
+  $("#musicBar").hidden = false;
+  const box = $("#ytBox"), f = document.createElement("iframe");
+  f.src = "https://www.youtube-nocookie.com/embed/" + encodeURIComponent(v.id) + "?autoplay=1&enablejsapi=1&playsinline=1&rel=0" +
+    (location.origin.startsWith("http") ? "&origin=" + encodeURIComponent(location.origin) : "");
+  f.allow = "autoplay; encrypted-media; picture-in-picture";
+  f.title = "YouTube";
+  f.onload = () => { try { f.contentWindow.postMessage(JSON.stringify({ event: "listening", id: "apia" }), "*"); } catch (e) {} setTimeout(() => ytCmd("setVolume", [MU.vol]), 900); };
+  box.innerHTML = "";
+  box.appendChild(f);
+  Object.assign(MU, { frame: f, playing: true, paused: false });
+  $("#ytTitle").textContent = v.titulo;
+  $("#ytSub").textContent = [v.canal, v.duracao].filter(Boolean).join(" · ");
+}
+function musicStop() { Object.assign(MU, { playing: false, paused: false, frame: null }); $("#ytBox").innerHTML = ""; $("#musicBar").hidden = true; }
+function musicNext() { if (!MU.list.length) return; MU.i = (MU.i + 1) % MU.list.length; loadVideo(); }
+window.addEventListener("message", e => {
+  let host = "";
+  try { host = new URL(e.origin).hostname; } catch (x) { return; }
+  if (!/(^|\.)youtube(-nocookie)?\.com$/.test(host)) return;
+  let d;
+  try { d = typeof e.data === "string" ? JSON.parse(e.data) : e.data; } catch (x) { return; }
+  if (!d) return;
+  if (d.event === "onError") { // vídeo que não deixa ser incorporado: passa ao seguinte
+    if (++MU.errors >= MU.list.length) { musicStop(); setStatusMsg("NENHUM DESTES VÍDEOS PODE TOCAR AQUI"); } else musicNext();
+  }
+  if ((d.event === "infoDelivery" && d.info && d.info.playerState === 0) || (d.event === "onStateChange" && d.info === 0)) musicNext();
+  if (d.event === "onReady" || (d.event === "infoDelivery" && d.info && d.info.playerState === 1)) MU.errors = 0;
+});
+function setStatusMsg(m) { showStatus(m, true, 6000); }
+$("#ytPause").onclick = () => { if (MU.paused) { ytCmd("playVideo"); MU.paused = false; } else { ytCmd("pauseVideo"); MU.paused = true; } };
+$("#ytNext").onclick = musicNext;
+$("#ytStop").onclick = musicStop;
+$("#ytVolUp").onclick = () => { MU.vol = Math.min(100, MU.vol + 15); ytCmd("setVolume", [MU.vol]); };
+$("#ytVolDown").onclick = () => { MU.vol = Math.max(5, MU.vol - 15); ytCmd("setVolume", [MU.vol]); };
+const MUSIC_STOP = new Set(["poe", "toca", "tocar", "coloca", "mete", "liga", "quero", "ouvir", "reproduz", "play", "a", "uma", "um", "o", "os", "as", "musica", "musicas",
+  "cancao", "cancoes", "som", "playlist", "no", "do", "youtube", "de", "da", "dos", "das", "me", "ai", "la", "algo", "alguma", "qualquer"]);
+function musicQuery(text) {
+  const words = text.replace(/[?!.,]+/g, " ").split(/\s+/).filter(Boolean);
+  let i = 0;
+  while (i < words.length && MUSIC_STOP.has(norm(words[i]))) i++;
+  return words.slice(i).join(" ").replace(/\s+no youtube$/i, "").trim();
+}
+async function musicCommand(text, n) {
+  const short = n.split(" ").length <= 6;
+  const say1 = async (msg) => { setUser(text); await sayLong(msg); return true; };
+  if (MU.playing) {
+    if (/\b(para|pare|parar|desliga|tira|stop)\b.*\b(musica|som)\b|^(para|stop|chega)$/.test(n)) { musicStop(); return say1("Música desligada."); }
+    if (/\b(pausa|pausar|pausa a)\b/.test(n) && short) { ytCmd("pauseVideo"); MU.paused = true; setUser(text); return true; }
+    if (/\b(continua|retoma|volta a tocar|play)\b/.test(n) && short) { ytCmd("playVideo"); MU.paused = false; setUser(text); return true; }
+    if (/\b(proxima|seguinte|salta|outra)\b/.test(n) && short) { musicNext(); setUser(text); return true; }
+    if (/\b(aumenta|sobe|mais alto)\b/.test(n) && short) { MU.vol = Math.min(100, MU.vol + 20); setUser(text); return true; }
+    if (/\b(baixa|diminui|mais baixo)\b/.test(n) && short) { MU.vol = Math.max(5, MU.vol - 20); setUser(text); return true; }
+  }
+  const isMusic = /^(toca|tocar|reproduz|play)\b/.test(n) || (/\b(musica|musicas|cancao|playlist|youtube)\b/.test(n) && /^(poe|coloca|mete|liga|quero ouvir|ouvir|apetece me ouvir)\b/.test(n));
+  if (!isMusic) return false;
+  setUser(text);
+  const q = musicQuery(text) || "música para trabalhar concentrado";
+  let list;
+  try {
+    busy = true; setState("thinking");
+    list = (await antJson("/api/youtube?q=" + encodeURIComponent(q), { timeout: 20000 })).videos || [];
+  } catch (e) {
+    busy = false;
+    await sayLong(e instanceof AntOff ? "A antena está desligada, " + addr + ". Corre o iniciar-apiav1.bat para eu ir ao YouTube." : "Não consegui pesquisar no YouTube: " + e.message);
+    return true;
+  } finally { busy = false; }
+  if (!list.length) { await sayLong("Não encontrei nada no YouTube para " + q + "."); return true; }
+  Object.assign(MU, { list, i: 0, errors: 0 });
+  await sayLong("A pôr " + list[0].titulo.replace(/\s*[\(\[].*?[\)\]]/g, "") + ".");
+  loadVideo();
+  return true;
+}
+
 /* =====================================================================
    HUD: conversa em balões, data no topo, barra de comandos, [ESPAÇO] para falar
    (envolve setUser/setBot da Parte 1)
@@ -2533,6 +2869,8 @@ refreshAntChip();
 renderAgenda(); renderEmails(); renderNews(); renderDigest(); renderLearn();
 switchTab(LS.get("jarvis_tab") || "agenda");
 refreshHeader();
+applyAvatar();
+refreshVoiceChip();
 ping().then(() => { loadAgenda(); loadEmails(true); loadNews(false); });
 setInterval(ping, 60000);
 scheduleMail();

@@ -37,7 +37,7 @@ PROXY_HOSTS = {"calendar.google.com", "news.google.com", "outlook.office365.com"
 IMAP_HOSTS = {"imap.gmail.com"}
 ALLOWED_HOSTS = {"localhost:%d" % PORT, "127.0.0.1:%d" % PORT}
 ALLOWED_ORIGINS = {"http://localhost:%d" % PORT, "http://127.0.0.1:%d" % PORT}
-STATIC = {".html": "text/html; charset=utf-8", ".png": "image/png", ".ico": "image/x-icon",
+STATIC = {".html": "text/html; charset=utf-8", ".webmanifest": "application/manifest+json", ".png": "image/png", ".ico": "image/x-icon",
           ".svg": "image/svg+xml", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8"}
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Safari/537.36"
 
@@ -50,7 +50,8 @@ except Exception:
 
 
 def say(msg):
-    print(msg, flush=True)
+    if sys.stdout:  # com pythonw (sem janela) não há consola
+        print(msg, flush=True)
 
 
 # ---------------------------------------------------------------- HTTP de saída
@@ -148,6 +149,44 @@ def ms_calendar(start, end):
         events.append({"titulo": str(e.get("titulo") or "(sem título)"), "inicio": _naive(a), "fim": _naive(b),
                        "diaTodo": bool(e.get("diaTodo")), "local": str(e.get("local") or "")})
     return 200, {"eventos": events, "atualizado": s.get("atualizado")}
+
+
+# ---------------------------------------------------------------- YouTube (pesquisa de música, sem chave)
+YT_HEADERS = {"User-Agent": UA, "Accept-Language": "pt-PT,pt;q=0.9", "Cookie": "SOCS=CAI; CONSENT=YES+cb"}
+
+
+def youtube_search(q):
+    q = (q or "").strip()[:120]
+    if not q:
+        return 400, {"erro": "Pesquisa vazia."}
+    url = "https://www.youtube.com/results?" + urllib.parse.urlencode({"search_query": q, "sp": "EgIQAQ=="})
+    with urllib.request.urlopen(urllib.request.Request(url, headers=YT_HEADERS), timeout=15) as r:
+        if urllib.parse.urlsplit(r.geturl()).hostname != "www.youtube.com":
+            return 502, {"erro": "O YouTube pediu consentimento de cookies. Tenta outra vez."}
+        page = r.read(4 * 1024 * 1024).decode("utf-8", "replace")
+    m = re.search(r"var ytInitialData\s*=\s*(\{.*?\});\s*</script>", page, re.S)
+    if not m:
+        return 502, {"erro": "Não consegui ler os resultados do YouTube."}
+    out = []
+
+    def walk(o):
+        if len(out) >= 10:
+            return
+        if isinstance(o, dict):
+            vr = o.get("videoRenderer")
+            if isinstance(vr, dict) and vr.get("videoId"):
+                runs = (vr.get("title") or {}).get("runs") or []
+                out.append({"id": vr["videoId"], "titulo": "".join(x.get("text", "") for x in runs),
+                            "canal": "".join(x.get("text", "") for x in ((vr.get("ownerText") or {}).get("runs") or [])),
+                            "duracao": (vr.get("lengthText") or {}).get("simpleText") or "direto"})
+                return
+            for v in o.values():
+                walk(v)
+        elif isinstance(o, list):
+            for v in o:
+                walk(v)
+    walk(json.loads(m.group(1)))
+    return 200, {"videos": out}
 
 
 # ---------------------------------------------------------------- IMAP (Gmail)
@@ -248,7 +287,8 @@ class Antena(BaseHTTPRequestHandler):
     server_version = "AntenaAPIAv1/1.0"
 
     def log_message(self, fmt, *args):  # nunca escreve links secretos nem credenciais
-        sys.stderr.write("  · %s %s\n" % (self.command, _mask(self.path)))
+        if sys.stderr:  # com pythonw (sem janela) não há consola
+            sys.stderr.write("  · %s %s\n" % (self.command, _mask(self.path)))
 
     def _guard(self):
         """Só aceita pedidos feitos a localhost e vindos da própria página (protege contra sites maliciosos)."""
@@ -303,6 +343,8 @@ class Antena(BaseHTTPRequestHandler):
                 return self._json(200, {"ok": True, "versao": 2, "ms": ms_state()})
             if u.path == "/proxy":
                 return self._proxy((q.get("url") or [""])[0])
+            if u.path == "/api/youtube":
+                return self._json(*youtube_search((q.get("q") or [""])[0]))
             if u.path == "/api/ms/status":
                 return self._json(200, ms_state())
             if u.path == "/api/ms/mail":
@@ -376,7 +418,7 @@ def main():
         say("    Fecha essa janela e corre o iniciar-apiav1.bat outra vez.\n")
         try:
             input("  Carrega em Enter para fechar...")
-        except EOFError:
+        except Exception:  # sem consola (pythonw): sai em silêncio
             pass
         sys.exit(1)
     say("")

@@ -24,7 +24,7 @@ const IMAP_HOSTS = new Set(["imap.gmail.com"]);
 // "null" é a origem de uma página aberta com duplo clique (file://)
 const ALLOWED_ORIGINS = new Set(["null", "http://localhost:" + PORT, "http://127.0.0.1:" + PORT]);
 const ALLOWED_HOSTS = new Set(["localhost:" + PORT, "127.0.0.1:" + PORT]);
-const STATIC = { ".html": "text/html; charset=utf-8", ".png": "image/png", ".ico": "image/x-icon", ".svg": "image/svg+xml" };
+const STATIC = { ".html": "text/html; charset=utf-8", ".webmanifest": "application/manifest+json", ".png": "image/png", ".ico": "image/x-icon", ".svg": "image/svg+xml" };
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Safari/537.36";
 
 /* ------------------------------------------------------------ HTTP de saída */
@@ -100,6 +100,29 @@ function msCalendar(start, end) {
     eventos.push({ titulo: String(e.titulo || "(sem título)"), inicio: ini, fim, diaTodo: !!e.diaTodo, local: String(e.local || "") });
   }
   return [200, { eventos, atualizado: s.atualizado || null }];
+}
+
+/* ------------------------------------------------------------ YouTube (pesquisa de música, sem chave) */
+async function youtubeSearch(qs) {
+  qs = String(qs || "").trim().slice(0, 120);
+  if (!qs) return [400, { erro: "Pesquisa vazia." }];
+  const r = await request("https://www.youtube.com/results?" + new URLSearchParams({ search_query: qs, sp: "EgIQAQ==" }).toString(),
+    { headers: { "Accept-Language": "pt-PT,pt;q=0.9", Cookie: "SOCS=CAI; CONSENT=YES+cb" } });
+  if (r.status >= 300) return [502, { erro: "O YouTube pediu consentimento de cookies. Tenta outra vez." }];
+  const m = r.body.toString("utf8").match(/var ytInitialData\s*=\s*(\{[\s\S]*?\});\s*<\/script>/);
+  if (!m) return [502, { erro: "Não consegui ler os resultados do YouTube." }];
+  const out = [];
+  (function walk(o) {
+    if (out.length >= 10 || !o || typeof o !== "object") return;
+    const vr = o.videoRenderer;
+    if (vr && vr.videoId) {
+      out.push({ id: vr.videoId, titulo: ((vr.title && vr.title.runs) || []).map(x => x.text).join(""),
+        canal: ((vr.ownerText && vr.ownerText.runs) || []).map(x => x.text).join(""), duracao: (vr.lengthText && vr.lengthText.simpleText) || "direto" });
+      return;
+    }
+    for (const v of Array.isArray(o) ? o : Object.values(o)) walk(v);
+  })(JSON.parse(m[1]));
+  return [200, { videos: out }];
 }
 
 /* ------------------------------------------------------------ MIME */
@@ -329,6 +352,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET") {
       if (u.pathname === "/api/ping") return send(req, res, 200, { ok: true, versao: 2, ms: msState() });
       if (u.pathname === "/proxy") return await proxy(req, res, u.searchParams.get("url") || "");
+      if (u.pathname === "/api/youtube") return send(req, res, ...(await youtubeSearch(u.searchParams.get("q"))));
       if (u.pathname === "/api/ms/status") return send(req, res, 200, msState());
       if (u.pathname === "/api/ms/mail") return send(req, res, ...(msMail(Math.max(1, Math.min(parseInt(u.searchParams.get("top"), 10) || 20, 50)))));
       if (u.pathname === "/api/ms/calendar") return send(req, res, ...(msCalendar(u.searchParams.get("start") || "", u.searchParams.get("end") || "")));
