@@ -627,7 +627,7 @@ async function say(text) {
   setState("speaking");
   await speak(text);
   busy = false;
-  ignoreUntil = Date.now() + 700; // corta o eco final da própria voz
+  ignoreUntil = Math.max(ignoreUntil, Date.now() + 700); // corta o eco final da própria voz
   activeUntil = Date.now() + CONV_MS;
   setState(idleState());
   safeStart();
@@ -1234,7 +1234,7 @@ async function sayLong(text) {
     await speak(c);
   }
   busy = false;
-  ignoreUntil = Date.now() + 700;
+  ignoreUntil = Math.max(ignoreUntil, Date.now() + 700);
   activeUntil = Date.now() + CONV_MS;
   setState(idleState());
   safeStart();
@@ -1298,8 +1298,34 @@ function playPcm(a) {
   });
 }
 function stopCloud() { cloudStop = true; if (curSrc) { try { curSrc.stop(); } catch (e) {} curSrc = null; } }
+/* ---------------- Anti-eco: a PauloIA não se pode ouvir a si própria ---------------- */
+let lastSpoken = "", lastSpokenAt = 0, micGranted = false;
+try {
+  navigator.permissions.query({ name: "microphone" }).then(st => { micGranted = st.state === "granted"; st.onchange = () => { micGranted = st.state === "granted"; }; }).catch(() => {});
+} catch (e) {}
+function muteMic() {
+  // Desliga o reconhecimento enquanto fala e deita fora o que estava a meio (não o faz antes de o browser dar permissão ao microfone)
+  if (rec && micGranted) { try { rec.abort(); } catch (e) {} }
+}
+function isEcho(heard) {
+  if (!lastSpoken || Date.now() - lastSpokenAt > 20000) return false;
+  const h = norm(heard).split(" ").filter(w => w.length > 2), said = new Set(norm(lastSpoken).split(" "));
+  if (h.length < 3) return false; // comandos curtos teus nunca são tratados como eco
+  return h.filter(w => said.has(w)).length / h.length >= 0.6;
+}
+const _handleHeard = handleHeard;
+handleHeard = function (raw) {
+  if (isEcho(raw)) { console.info("Eco ignorado:", raw); return; }
+  return _handleHeard(raw);
+};
 const _speak = speak;
 speak = async function (text) {
+  lastSpoken = (Date.now() - lastSpokenAt < 20000 ? lastSpoken + " " : "") + (text || "");
+  lastSpokenAt = Date.now();
+  muteMic();
+  try { return await speakInner(text); } finally { lastSpokenAt = Date.now(); ignoreUntil = Date.now() + 1500; }
+};
+async function speakInner(text) {
   if (text && ttsCloud()) {
     cloudStop = false;
     stopCloud(); cloudStop = false;
@@ -1317,7 +1343,7 @@ speak = async function (text) {
     }
   }
   return _speak(text);
-};
+}
 
 /* ---------------- Antena ---------------- */
 class AntOff extends Error {}
@@ -2511,7 +2537,7 @@ setInterval(ping, 60000);
 scheduleMail();
 
 // Para testes e depuração na consola
-window.PIA = { cfg, AG, EM, NW, icsEvents, expandRRule, localCommand, runDigest, loadAgenda, loadEmails, loadNews, heur, digestTemplate };
+window.PIA = { isEcho, cfg, AG, EM, NW, icsEvents, expandRRule, localCommand, runDigest, loadAgenda, loadEmails, loadNews, heur, digestTemplate };
 })();
 </script>
 </body>
