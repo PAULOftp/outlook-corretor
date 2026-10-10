@@ -270,6 +270,34 @@ body.idle .hud #status:not(.err){color:#ff8a7a}
   .hud-orb{width:230px;height:230px}.hud-orb .orb{width:170px;height:170px}
   .hud-title{justify-content:center}.chat{height:200px}
 }
+
+/* ================= Aprendizagem ================= */
+.ntabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-top:6px}
+.ntab{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--muted);background:none;border:0;border-bottom:2px solid transparent;padding:8px 10px;cursor:pointer}
+.ntab.on{color:var(--theme);border-bottom-color:var(--theme)}
+.ncount{background:var(--theme);color:#03070d;border-radius:9px;padding:0 6px;font-weight:700;letter-spacing:0;margin-left:4px}
+.npane{display:none}
+.npane.on{display:block}
+.autolist{max-height:240px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding:4px 0}
+.fact{display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:start;border:1px solid var(--line);border-radius:6px;padding:7px 9px;background:rgba(0,200,255,.04)}
+.fact .src{grid-column:1/-1;font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--theme)}
+.fact .tx{font-size:14px;overflow-wrap:anywhere}
+.fact .lnk{color:var(--text);cursor:pointer;font-weight:600}
+.fact .lnk:hover{color:var(--theme)}
+.fx{background:none;border:1px solid var(--line);color:var(--muted);border-radius:4px;width:28px;height:26px;cursor:pointer}
+.fx.del:hover{color:var(--err);border-color:rgba(255,85,71,.5)}
+.fx.up:hover{color:var(--theme);border-color:var(--theme)}
+.fact-empty{font-size:13px;color:var(--muted);padding:10px 2px}
+.lgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:14px}
+.lcard{border:1px solid var(--line);border-radius:8px;padding:12px;background:rgba(0,200,255,.03);display:flex;flex-direction:column;gap:8px}
+.lcard h4{margin:0;font-family:var(--mono);font-size:12px;letter-spacing:.2em;color:var(--theme)}
+.lcard ol{margin:0;padding-left:18px;font-size:12px;color:var(--muted);line-height:1.5}
+.lcard a{color:var(--theme)}
+.lcard input[type=file]{font-size:12px;color:var(--muted);padding:6px}
+.lcard textarea{width:100%;min-height:90px;padding:8px;font-size:13px}
+.lcard select{padding:6px;font-size:13px}
+#learnStatus{font-family:var(--mono);font-size:12px;color:var(--theme);min-height:1.4em;margin:4px 0 10px}
+#learnStatus.err{color:var(--err)}
 </style>
 </head>
 <body>
@@ -355,6 +383,7 @@ body.idle .hud #status:not(.err){color:#ff8a7a}
       <button class="tab" data-tab="emails" type="button">E-MAILS <span class="badge" id="tabBadge" hidden>0</span></button>
       <button class="tab" data-tab="noticias" type="button">NOTÍCIAS</button>
       <button class="tab" data-tab="digest" type="button">DIGEST</button>
+      <button class="tab" data-tab="aprender" type="button">APRENDER</button>
       <span class="spacer"></span>
       <button class="tbtn" id="digestBtn" type="button">☀ DIGEST</button>
     </div>
@@ -362,6 +391,7 @@ body.idle .hud #status:not(.err){color:#ff8a7a}
     <div class="mpanel" id="p-emails"></div>
     <div class="mpanel" id="p-noticias"></div>
     <div class="mpanel" id="p-digest"></div>
+    <div class="mpanel" id="p-aprender"></div>
   </section>
 
   <section class="brain">
@@ -399,8 +429,12 @@ body.idle .hud #status:not(.err){color:#ff8a7a}
     <input id="fTitle" type="text" maxlength="40">
     <label for="fArea">ÁREA</label>
     <select id="fArea"></select>
-    <label for="fBody">CONTEÚDO</label>
-    <textarea id="fBody"></textarea>
+    <div class="ntabs">
+      <button class="ntab on" data-p="m" type="button">CONTEÚDO MANUAL</button>
+      <button class="ntab" data-p="a" type="button">APRENDIZAGEM AUTOMÁTICA <span class="ncount" id="fAutoN">0</span></button>
+    </div>
+    <div class="npane on" id="np-m"><textarea id="fBody" placeholder="O que tu escreves sobre este tema."></textarea></div>
+    <div class="npane" id="np-a"><div class="autolist" id="fAuto"></div></div>
     <div class="row">
       <button class="btn danger" id="fDelete" type="button">ELIMINAR</button>
       <button class="btn ghost" id="fCancel" type="button">CANCELAR</button>
@@ -681,7 +715,7 @@ function buildSystem() {
   for (const k of Object.keys(AREA)) {
     const ns = notes.filter(n => n.area === k);
     if (!ns.length) continue;
-    brain += "\n\n## " + AREA[k].label + " (" + k + ")\n" + ns.map(n => "- " + n.title + ": " + n.body).join("\n");
+    brain += "\n\n## " + AREA[k].label + " (" + k + ")\n" + ns.map(n => "- " + n.title + ": " + noteText(n)).join("\n");
   }
   return [
     "És a " + CONFIG.name + ", a assistente pessoal de voz do " + CONFIG.address + ". Personalidade " + CONFIG.persona +
@@ -693,7 +727,7 @@ function buildSystem() {
     "SECOND BRAIN DO " + CONFIG.address.toUpperCase() + " (o que sabes sobre a vida dele; usa-o para personalizar as respostas, sem o recitar):" + brain,
     "PROTOCOLO DE MEMÓRIA VIVA: se o utilizador revelar algo novo e duradouro sobre a vida dele, TERMINA a resposta com uma linha no formato EXATO " +
     "[[SAVE:area|titulo|texto]] (area ∈ metas, trabalho, projetos, financas, aprendizado, saude, relacoes, meta; titulo com 1 a 2 palavras). " +
-    "Se já existir nota com esse título, ela é atualizada (escreve então o texto completo e atualizado); senão nasce uma nova. " +
+    "Reutiliza o título de uma nota existente sempre que o facto encaixar nela (o facto é acrescentado à aprendizagem automática dessa nota); senão nasce uma nota nova. " +
     "Inclui só quando houver algo realmente novo. Nunca menciones esta linha na parte falada."
   ].join("\n\n");
 }
@@ -805,14 +839,24 @@ function applySaves(text) {
 function makeId(title) {
   return (norm(title).replace(/ /g, "-") || "nota") + "-" + Date.now().toString(36);
 }
-function upsertNote(area, title, body) {
+// Aprendizagem automática: factos com fonte e data, guardados à parte do conteúdo manual (body)
+function addFact(area, title, text, fonte) {
   if (!AREA[area]) area = "meta";
-  title = title.slice(0, 40);
-  const ex = notes.find(n => norm(n.title) === norm(title));
-  if (ex) { ex.area = area; ex.body = body; return ex.id; }
-  const id = makeId(title);
-  notes.push({ id, area, title, body });
-  return id;
+  title = String(title || "").trim().slice(0, 40);
+  text = String(text || "").trim().slice(0, 300);
+  if (!title || !text) return null;
+  let n = notes.find(x => norm(x.title) === norm(title));
+  if (!n) { n = { id: makeId(title), area, title, body: "", auto: [] }; notes.push(n); }
+  n.auto = n.auto || [];
+  if (n.auto.some(f => norm(f.t) === norm(text)) || norm(n.body).includes(norm(text))) return null;
+  n.auto.push({ t: text, fonte: fonte || "conversa", d: Date.now() });
+  if (n.auto.length > 15) n.auto.splice(0, n.auto.length - 15);
+  return n.id;
+}
+function upsertNote(area, title, body) { return addFact(area, title, body, "conversa"); }
+function noteText(n) {
+  const auto = (n.auto || []).slice(-6).map(f => f.t).join("; ");
+  return [n.body, auto ? "Aprendido: " + auto : ""].filter(Boolean).join(" | ");
 }
 
 /* ===================== SECOND BRAIN: GRAFO ===================== */
@@ -883,11 +927,12 @@ function renderGraph() {
   list.forEach((n, i) => {
     const p = pos[n.id], c = AREA[n.area].color, x = p.x.toFixed(1), y = p.y.toFixed(1);
     s += '<g class="node" data-id="' + esc(n.id) + '" id="n-' + esc(n.id) + '">' +
-      '<title>' + esc(n.title + ": " + n.body) + '</title>' +
+      '<title>' + esc(n.title + ": " + noteText(n)) + '</title>' +
       '<circle cx="' + x + '" cy="' + y + '" r="' + (p.r + 14) + '" fill="transparent"/>' +
       '<circle class="breath" cx="' + x + '" cy="' + y + '" r="' + (p.r + 7) + '" fill="none" stroke="' + c + '" stroke-width="1.5" style="animation-delay:-' + ((i * 0.37) % 3.6).toFixed(2) + 's"/>' +
       '<circle class="nbody" cx="' + x + '" cy="' + y + '" r="' + p.r + '" fill="' + c + '" fill-opacity=".92" stroke="#ffffff" stroke-opacity=".35" stroke-width="1" filter="url(#softglow)"/>' +
       '<circle cx="' + x + '" cy="' + y + '" r="' + (p.r * 0.36).toFixed(1) + '" fill="#ffffff" fill-opacity=".5"/>' +
+      ((n.auto && n.auto.length) ? '<circle cx="' + (p.x + p.r * 0.75).toFixed(1) + '" cy="' + (p.y - p.r * 0.75).toFixed(1) + '" r="4.5" fill="#00c8ff" stroke="#03070d" stroke-width="1.5"/>' : "") +
       '<text x="' + x + '" y="' + (p.y + p.r + 18).toFixed(1) + '" text-anchor="middle" font-size="14" font-family="system-ui,-apple-system,Segoe UI,Roboto,sans-serif" fill="#d9f4ff" stroke="#03070d" stroke-width="4" stroke-linejoin="round" paint-order="stroke">' + esc(n.title) + '</text>' +
       '</g>';
   });
@@ -953,11 +998,40 @@ function openEditor(id) {
   $("#fTitle").value = n ? n.title : "";
   $("#fArea").value = n ? n.area : "metas";
   $("#fBody").value = n ? n.body : "";
+  draftAuto = n && n.auto ? n.auto.map(f => ({ ...f })) : [];
+  renderAuto();
+  noteTab("m");
   $("#fDelete").style.display = n ? "" : "none";
   $("#modal").classList.add("open");
   setTimeout(() => $("#fTitle").focus(), 50);
 }
 function closeEditor() { $("#modal").classList.remove("open"); editingId = null; }
+let draftAuto = [];
+function noteTab(p) {
+  document.querySelectorAll(".ntab").forEach(b => b.classList.toggle("on", b.dataset.p === p));
+  $("#np-m").classList.toggle("on", p === "m");
+  $("#np-a").classList.toggle("on", p === "a");
+}
+document.querySelectorAll(".ntab").forEach(b => b.addEventListener("click", () => noteTab(b.dataset.p)));
+function renderAuto() {
+  $("#fAutoN").textContent = draftAuto.length;
+  const box = $("#fAuto");
+  if (!draftAuto.length) {
+    box.innerHTML = '<div class="fact-empty">Ainda não aprendi nada sobre isto. Aprendo com as conversas, os e-mails e as importações (separador APRENDER).</div>';
+    return;
+  }
+  box.innerHTML = draftAuto.map((f, i) => '<div class="fact"><span class="src">' + esc(String(f.fonte).toUpperCase()) + " · " +
+    esc(new Date(f.d).toLocaleDateString("pt-PT")) + '</span><span class="tx">' + esc(f.t) + '</span>' +
+    '<button type="button" class="fx up" data-i="' + i + '" title="Passar para o conteúdo manual">⇧</button>' +
+    '<button type="button" class="fx del" data-i="' + i + '" title="Esquecer">✕</button></div>').join("");
+  box.querySelectorAll(".del").forEach(b => b.onclick = () => { draftAuto.splice(+b.dataset.i, 1); renderAuto(); });
+  box.querySelectorAll(".up").forEach(b => b.onclick = () => {
+    const f = draftAuto.splice(+b.dataset.i, 1)[0];
+    const t = $("#fBody");
+    t.value = (t.value.trim() ? t.value.trim() + " " : "") + f.t;
+    renderAuto();
+  });
+}
 
 $("#fSave").addEventListener("click", () => {
   const title = $("#fTitle").value.trim(), area = $("#fArea").value, body = $("#fBody").value.trim();
@@ -965,10 +1039,10 @@ $("#fSave").addEventListener("click", () => {
   let id = editingId;
   if (id) {
     const n = notes.find(x => x.id === id);
-    if (n) { n.title = title; n.area = area; n.body = body; }
+    if (n) { n.title = title; n.area = area; n.body = body; n.auto = draftAuto; }
   } else {
     id = makeId(title);
-    notes.push({ id, area, title, body });
+    notes.push({ id, area, title, body, auto: draftAuto });
   }
   saveNotes(); closeEditor(); renderGraph(); flashNode(id);
 });
@@ -1069,7 +1143,8 @@ const DEF = {
   },
   digest: { cidade: "Avanca", clima: true, tamanho: "curto", auto: true, voz: true,
             conteudo: { agenda: true, emails: true, noticias: true, foco: true } },
-  engine: { nivel: "equilibrado", economia: true }
+  engine: { nivel: "equilibrado", economia: true },
+  learn: { emails: true }
 };
 function loadCfg(key, def) {
   const v = jget(key, null);
@@ -1080,7 +1155,8 @@ const cfg = {
   mail: loadCfg("jarvis_emails", DEF.emails),
   news: loadCfg("jarvis_news_cfg", DEF.news),
   dig: loadCfg("jarvis_digest_cfg", DEF.digest),
-  eng: loadCfg("jarvis_engine", DEF.engine)
+  eng: loadCfg("jarvis_engine", DEF.engine),
+  learn: loadCfg("jarvis_learn_cfg", DEF.learn)
 };
 
 /* ---------------- Motor: escreve no mesmo CONFIG da Parte 1 ---------------- */
@@ -1537,19 +1613,31 @@ async function aiTriage(chunk) {
     "acao: pede resposta, tarefa, decisão ou tem prazo; alguém está à espera dele. " + (cfg.mail.prioridade || "") + "\n" +
     "info: vale a pena saber mas não exige nada (confirmações, recibos, atualizações).\n" +
     "ruido: promoções, newsletters, notificações automáticas.\n" +
-    'Responde APENAS com um array JSON, um item por e-mail: [{"i":número,"balde":"acao"|"info"|"ruido","resumo":"uma frase curta em português europeu"}]. Sem texto extra.';
+    (cfg.learn.emails
+      ? 'Responde APENAS com um objeto JSON: {"emails":[{"i":número,"balde":"acao"|"info"|"ruido","resumo":"uma frase curta em português europeu"}],' +
+        '"factos":[{"area":"trabalho|projetos|relacoes|aprendizado|financas|metas|meta","titulo":"1 a 3 palavras","texto":"facto curto em português europeu"}]}. ' +
+        'Um item em "emails" por e-mail. Em "factos" (no máximo 5, pode ficar vazio) põe só conhecimento duradouro e claro sobre a FTP Porto e o trabalho do ' + addr +
+        ': produtos e serviços, clientes, parceiros, concorrentes, colegas e funções, processos. Reutiliza estes títulos quando o facto encaixar: ' + notes.map(n => n.title).join(", ") +
+        '. Nada de passwords, dados bancários ou dados pessoais sensíveis. Sem texto extra.'
+      : 'Responde APENAS com um array JSON, um item por e-mail: [{"i":número,"balde":"acao"|"info"|"ruido","resumo":"uma frase curta em português europeu"}]. Sem texto extra.');
   const user = JSON.stringify(chunk.map((m, i) => ({ i, de: m.remetente + (m.email ? " <" + m.email + ">" : ""), assunto: m.assunto, trecho: (m.trecho || "").slice(0, 200) })));
-  const txt = await llmOnce(sys, user, 1500, true);
-  const a = txt.indexOf("["), b = txt.lastIndexOf("]");
-  if (a < 0 || b < a) throw new Error("resposta da IA sem JSON");
-  return JSON.parse(txt.slice(a, b + 1));
+  const j = parseJsonLoose(await llmOnce(sys, user, 1800, true));
+  return Array.isArray(j) ? { emails: j, factos: [] } : { emails: j.emails || [], factos: j.factos || [] };
+}
+function parseJsonLoose(txt) {
+  const i = txt.search(/[\[{]/);
+  if (i < 0) throw new Error("resposta da IA sem JSON");
+  const close = txt[i] === "[" ? "]" : "}", b = txt.lastIndexOf(close);
+  return JSON.parse(txt.slice(i, b + 1));
 }
 async function triageNew(list) {
   if (getKey()) {
     for (let i = 0; i < list.length; i += 30) { // UMA chamada por lote
       const chunk = list.slice(i, i + 30);
       try {
-        for (const r of await aiTriage(chunk)) {
+        const res = await aiTriage(chunk);
+        if (cfg.learn.emails) learnFacts(res.factos, "e-mail");
+        for (const r of res.emails) {
           const m = chunk[r.i];
           if (m && ["acao", "info", "ruido"].includes(r.balde)) triage[m.id] = { balde: r.balde, resumo: String(r.resumo || m.assunto).slice(0, 220), t: Date.now() };
         }
@@ -1569,6 +1657,7 @@ function loadEmails(force) {
     let off = false;
     const add = (acc, cor) => j => {
       if (j.atualizado && Date.now() - new Date(j.atualizado) > 3 * 36e5) errs.push({ nome: acc, erro: "dados do Outlook de " + ago(new Date(j.atualizado)) + " — confirma a tarefa agendada no Claude.", soft: true });
+      if (cfg.learn.emails && Array.isArray(j.conhecimento)) learnFacts(j.conhecimento, "Outlook");
       for (const m of j.emails) {
         if (m.balde && m.resumo && (!triage[m.id] || triage[m.id].local)) triage[m.id] = { balde: m.balde, resumo: m.resumo, t: Date.now() }; // triagem já feita pelo Claude
         all.push({ ...m, conta: acc, cor, data: m.data ? new Date(m.data) : null });
@@ -1919,7 +2008,8 @@ buildSystem = function () {
   const byDay = eventsByDay(), L = [];
   L.push("MÓDULOS: tens acesso à agenda do " + addr + " (Outlook e agendas iCal), aos e-mails (Office 365 e Gmail, triados em AÇÃO, INFO e RUÍDO), a um radar de notícias (temas: " +
     cfg.news.temas.map(t => t.nome).join(", ") + ") e ao Morning Digest. Comandos de voz que ele pode usar: \"a minha agenda\", \"próximo compromisso\", \"agenda da semana\", " +
-    "\"os meus e-mails\", \"tenho e-mails importantes?\", \"notícias\", \"notícias de <tema>\", \"bom dia\", \"atualizar e-mails\", \"atualizar notícias\". Se ele perguntar o que sabes fazer, explica isto de forma breve e falada.");
+    "\"os meus e-mails\", \"tenho e-mails importantes?\", \"notícias\", \"notícias de <tema>\", \"bom dia\", \"atualizar e-mails\", \"atualizar notícias\". " +
+    "Também aprendes sozinha: com as conversas, com os e-mails (factos sobre a FTP Porto) e com o LinkedIn e o Facebook que ele importar no separador APRENDER; esses factos aparecem como \"Aprendido\" no Second Brain. Se ele perguntar o que sabes fazer, explica isto de forma breve e falada.");
   L.push("Agenda de hoje: " + compactDay(byDay.get(dayKey(new Date()))));
   L.push("Agenda de amanhã: " + compactDay(byDay.get(dayKey(addDays(new Date(), 1)))));
   L.push("E-mails a pedir ação: " + (EM.t ? byBucket("acao").length : "(indisponível)"));
@@ -1988,6 +2078,8 @@ function msPrompt() {
     "4. Grava o ficheiro m365.json na pasta da PauloIA (substitui o anterior), só com JSON válido e sem texto à volta, neste formato:\n" +
     '{"atualizado":"<agora, ISO 8601 com fuso>","conta":"<o meu e-mail>","emails":[{"id":"<internetMessageId>","remetente":"<nome>","email":"<endereço>","assunto":"...","data":"<ISO 8601>","trecho":"<até 300 caracteres do início do corpo>","lido":true,"balde":"acao","resumo":"..."}],' +
     '"eventos":[{"titulo":"...","inicio":"<ISO 8601 com fuso>","fim":"<ISO 8601 com fuso>","diaTodo":false,"local":"..."}]}\n' +
+    "5. Acrescenta ao JSON o campo \"conhecimento\": até 5 factos duradouros e claros sobre a FTP Porto e o meu trabalho que aprendeste nesses e-mails (produtos e serviços, clientes, parceiros, concorrentes, colegas e funções, processos), " +
+    'no formato [{"area":"trabalho","titulo":"1 a 3 palavras","texto":"facto curto"}]. Nada de passwords, dados bancários ou dados pessoais sensíveis.\n' +
     "Regras: não envies, respondas, movas, apagues nem marques como lido nenhum e-mail; não alteres o calendário; não cries nem alteres outros ficheiros.";
 }
 function openCfg() {
@@ -2120,6 +2212,152 @@ cm.addEventListener("click", e => { if (e.target === cm) closeCfg(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && cm.classList.contains("open")) closeCfg(); });
 
 
+
+/* =====================================================================
+   APRENDER: LinkedIn e Facebook (cópia oficial dos dados), texto colado e e-mails
+   ===================================================================== */
+const FONTES = { linkedin: "LinkedIn", facebook: "Facebook", site: "site", outro: "texto" };
+function learnFacts(list, fonte) {
+  const ids = [];
+  for (const f of Array.isArray(list) ? list : []) {
+    if (!f || !f.titulo || !f.texto) continue;
+    const id = addFact(String(f.area || "meta"), f.titulo, f.texto, fonte);
+    if (id) ids.push(id);
+  }
+  if (ids.length) {
+    saveNotes();
+    renderGraph();
+    [...new Set(ids)].forEach(flashNode);
+    if (hasEl("p-aprender")) renderLearn();
+  }
+  return ids.length;
+}
+async function learnFromText(text, fonte) {
+  if (!getKey()) throw new Error("Preciso da chave da API (Gemini ou Claude) para aprender.");
+  text = String(text || "").replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
+  if (text.length < 20) throw new Error("Não encontrei texto suficiente para aprender.");
+  const sys = "Extrais conhecimento duradouro sobre o " + addr + " (António Paulo, Diretor Comercial na FTP Porto) a partir de dados que ele próprio te deu (fonte: " + fonte + ").\n" +
+    'Devolve APENAS um array JSON, no máximo 20 itens: [{"area":"meta|metas|trabalho|projetos|financas|aprendizado|saude|relacoes","titulo":"1 a 3 palavras","texto":"um facto curto em português europeu"}].\n' +
+    "Reutiliza estes títulos de notas quando o facto encaixar: " + notes.map(n => n.title).join(", ") + ".\n" +
+    "Prefere factos úteis para um assistente pessoal: percurso profissional, empresas e cargos, competências, formação, línguas, interesses, rede profissional, objetivos, e o que se sabe da FTP Porto. " +
+    "Não incluas dados sensíveis (saúde, religião, política, dados bancários) nem dados de terceiros além do nome e da relação. Não inventes nada.";
+  let total = 0;
+  for (let i = 0; i < text.length && i < 72000; i += 24000) {
+    const j = parseJsonLoose(await llmOnce(sys, text.slice(i, i + 24000), 2000, true));
+    total += learnFacts(Array.isArray(j) ? j : (j.factos || []), fonte);
+  }
+  return total;
+}
+// Leitor de ZIP mínimo (sem bibliotecas): DecompressionStream nativo do browser
+async function unzip(file, want) {
+  const buf = new Uint8Array(await file.arrayBuffer()), dv = new DataView(buf.buffer);
+  let eocd = -1;
+  for (let i = buf.length - 22; i >= Math.max(0, buf.length - 65557); i--) if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+  if (eocd < 0) throw new Error(file.name + " não é um ZIP válido.");
+  const n = dv.getUint16(eocd + 10, true), out = [];
+  let p = dv.getUint32(eocd + 16, true);
+  for (let k = 0; k < n; k++) {
+    if (dv.getUint32(p, true) !== 0x02014b50) break;
+    const method = dv.getUint16(p + 10, true), csize = dv.getUint32(p + 20, true), usize = dv.getUint32(p + 24, true);
+    const nl = dv.getUint16(p + 28, true), xl = dv.getUint16(p + 30, true), cl = dv.getUint16(p + 32, true), off = dv.getUint32(p + 42, true);
+    const name = new TextDecoder().decode(buf.subarray(p + 46, p + 46 + nl));
+    p += 46 + nl + xl + cl;
+    if (!want(name) || usize > 8e6) continue;
+    const start = off + 30 + dv.getUint16(off + 26, true) + dv.getUint16(off + 28, true), data = buf.subarray(start, start + csize);
+    let bytes;
+    if (method === 0) bytes = data;
+    else if (method === 8) bytes = new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer());
+    else continue;
+    out.push({ name, text: new TextDecoder().decode(bytes) });
+  }
+  return out;
+}
+const LI_FILES = /(^|\/)(Profile|Profile Summary|Positions|Education|Skills|Certifications|Languages|Honors|Projects|Courses|Publications|Volunteering|Recommendations_Received|Endorsement_Received_Info)\.csv$/i;
+const FB_FILES = /\.json$/i, FB_SKIP = /message|inbox|chat|comment|search|location|device|ads_|security|login|payment|logged|activity_messages/i;
+const FB_KEEP = /profile_information|about_you|your_posts|posts_\d|post|groups|pages|work|education|interests|events/i;
+function fbFix(s) { try { return decodeURIComponent(escape(s)); } catch (e) { return s; } } // o Facebook exporta UTF-8 "às avessas"
+function fbFlatten(o, out, key) {
+  if (out.length > 600) return;
+  if (typeof o === "string") { const v = fbFix(o).trim(); if (v.length > 1 && !/uri|url|media|thumbnail|uuid|fbid|timestamp|id$/i.test(key || "")) out.push((key ? fbFix(key) + ": " : "") + v); }
+  else if (Array.isArray(o)) o.forEach(x => fbFlatten(x, out, key));
+  else if (o && typeof o === "object") for (const [k, v] of Object.entries(o)) fbFlatten(v, out, k);
+}
+async function importFiles(files, kind) {
+  const parts = [];
+  for (const f of files) {
+    if (/\.zip$/i.test(f.name)) {
+      const want = kind === "linkedin" ? n => LI_FILES.test(n) : n => FB_FILES.test(n) && FB_KEEP.test(n) && !FB_SKIP.test(n);
+      parts.push(...await unzip(f, want));
+    } else parts.push({ name: f.name, text: await f.text() });
+  }
+  if (!parts.length) throw new Error("Não encontrei ficheiros úteis. Confirma que é a cópia de dados " + FONTES[kind] + ".");
+  const blocks = parts.map(pt => {
+    let t = pt.text;
+    if (kind === "facebook" && /\.json$/i.test(pt.name)) { const lines = []; try { fbFlatten(JSON.parse(t), lines, ""); } catch (e) {} t = [...new Set(lines)].join("\n"); }
+    return "### " + pt.name.split("/").pop() + "\n" + t.slice(0, 8000);
+  });
+  return learnFromText(blocks.join("\n\n"), FONTES[kind]);
+}
+function setLearnStatus(msg, err) { const el = hasEl("learnStatus"); if (el) { el.textContent = msg; el.classList.toggle("err", !!err); } }
+async function runLearn(job, label) {
+  setLearnStatus("A aprender com " + label + "…");
+  try {
+    const n = await job();
+    const msg = n ? "Aprendi " + plural(n, "facto novo", "factos novos") + " com " + label + ", " + addr + "." : "Li tudo, mas não havia nada de novo para aprender, " + addr + ".";
+    setLearnStatus(msg);
+    if (!busy) sayLong(msg);
+  } catch (e) { setLearnStatus(e.message, true); }
+}
+function allFacts() {
+  const out = [];
+  for (const n of notes) for (const f of n.auto || []) out.push({ n, f });
+  return out.sort((a, b) => b.f.d - a.f.d);
+}
+function renderLearn() {
+  const p = $("#p-aprender"), facts = allFacts();
+  p.innerHTML = '<div class="mhead"><span class="meta">' + plural(facts.length, "FACTO APRENDIDO", "FACTOS APRENDIDOS") + " · " + plural(notes.filter(n => (n.auto || []).length).length, "NOTA", "NOTAS") + "</span></div>" +
+    '<div class="lgrid">' +
+    '<div class="lcard"><h4>LINKEDIN</h4><ol>' +
+      '<li>Abre <a href="https://www.linkedin.com/mypreferences/d/download-my-data" target="_blank" rel="noopener">LinkedIn → Obter uma cópia dos seus dados</a>.</li>' +
+      '<li>Escolhe os dados de <b>Perfil, Cargos, Formação e Competências</b> e pede o ficheiro.</li>' +
+      '<li>Quando chegar o e-mail, descarrega o ZIP e escolhe-o aqui.</li></ol>' +
+      '<input type="file" id="liFile" accept=".zip,.csv" multiple></div>' +
+    '<div class="lcard"><h4>FACEBOOK</h4><ol>' +
+      '<li>Abre <a href="https://accountscenter.facebook.com/info_and_permissions/dyi" target="_blank" rel="noopener">Centro de Contas → Transferir as tuas informações</a>.</li>' +
+      '<li>Escolhe <b>formato JSON</b> e só <b>Informações do perfil</b> e <b>Publicações</b> (as mensagens ficam de fora).</li>' +
+      '<li>Descarrega o ZIP e escolhe-o aqui.</li></ol>' +
+      '<input type="file" id="fbFile" accept=".zip,.json" multiple></div>' +
+    '<div class="lcard"><h4>COLAR TEXTO</h4>' +
+      '<select id="pasteSrc"><option value="linkedin">Perfil do LinkedIn (Acerca, Experiência…)</option><option value="facebook">Perfil do Facebook</option><option value="site">Site da FTP Porto / documento</option><option value="outro">Outro texto sobre mim</option></select>' +
+      '<textarea id="pasteTx" placeholder="Cola aqui o texto (ex.: a secção Acerca e Experiência do teu LinkedIn, ou a página da FTP Porto)."></textarea>' +
+      '<button class="btn" id="pasteGo" type="button">APRENDER</button></div>' +
+    "</div>" +
+    '<label class="chk"><input type="checkbox" id="learnMail"' + (cfg.learn.emails ? " checked" : "") + "> Aprender com os e-mails sobre a FTP Porto e o meu trabalho (sem custo extra: vem na mesma triagem)</label>" +
+    '<div class="warn">Os ficheiros são lidos neste PC. Só o texto relevante vai para a IA (Gemini ou Claude) para extrair factos; nada é publicado. As mensagens privadas do Facebook nunca são lidas.</div>' +
+    '<div id="learnStatus"></div>' +
+    '<div class="autolist" style="max-height:none">' + (facts.length ? facts.slice(0, 60).map((x, i) =>
+      '<div class="fact"><span class="src">' + esc(String(x.f.fonte).toUpperCase()) + " · " + esc(new Date(x.f.d).toLocaleDateString("pt-PT")) + '</span>' +
+      '<span class="tx"><span class="lnk" data-id="' + esc(x.n.id) + '">' + esc(x.n.title) + "</span>: " + esc(x.f.t) + "</span>" +
+      '<span></span><button type="button" class="fx del" data-i="' + i + '" title="Esquecer">✕</button></div>').join("")
+      : '<div class="fact-empty">Ainda não aprendi nada automaticamente. Importa o LinkedIn ou o Facebook, cola um texto, ou conversa comigo.</div>') + "</div>";
+  $("#liFile").onchange = e => { const fs = [...e.target.files]; if (fs.length) runLearn(() => importFiles(fs, "linkedin"), "o LinkedIn"); e.target.value = ""; };
+  $("#fbFile").onchange = e => { const fs = [...e.target.files]; if (fs.length) runLearn(() => importFiles(fs, "facebook"), "o Facebook"); e.target.value = ""; };
+  $("#pasteGo").onclick = () => {
+    const src = $("#pasteSrc").value, tx = $("#pasteTx").value;
+    runLearn(async () => { const n = await learnFromText(tx, FONTES[src]); const t = hasEl("pasteTx"); if (t) t.value = ""; return n; }, src === "site" ? "esse texto" : "o texto colado");
+  };
+  $("#learnMail").onchange = e => { cfg.learn.emails = e.target.checked; jset("jarvis_learn_cfg", cfg.learn); };
+  p.querySelectorAll(".lnk").forEach(el => el.onclick = () => openEditor(el.dataset.id));
+  p.querySelectorAll(".fact .del").forEach(b => b.onclick = () => {
+    const x = facts[+b.dataset.i];
+    x.n.auto = (x.n.auto || []).filter(f => f !== x.f);
+    saveNotes(); renderGraph(); renderLearn();
+  });
+}
+// o editor de notas também mexe nos factos: refresca a lista ao guardar
+$("#fSave").addEventListener("click", () => setTimeout(renderLearn, 0));
+$("#fDelete").addEventListener("click", () => setTimeout(renderLearn, 0));
+
 /* =====================================================================
    HUD: conversa em balões, data no topo, barra de comandos, [ESPAÇO] para falar
    (envolve setUser/setBot da Parte 1)
@@ -2171,7 +2409,7 @@ document.addEventListener("keydown", e => {
    ARRANQUE
    ===================================================================== */
 refreshAntChip();
-renderAgenda(); renderEmails(); renderNews(); renderDigest();
+renderAgenda(); renderEmails(); renderNews(); renderDigest(); renderLearn();
 switchTab(LS.get("jarvis_tab") || "agenda");
 refreshHeader();
 ping().then(() => { loadAgenda(); loadEmails(true); loadNews(false); });

@@ -82,7 +82,8 @@ function msMail(top) {
     trecho: String(m.trecho || "").replace(/\s+/g, " ").trim().slice(0, 500), lido: !!m.lido,
     balde: ["acao", "info", "ruido"].includes(m.balde) ? m.balde : undefined, resumo: m.resumo ? String(m.resumo).slice(0, 220) : undefined
   }));
-  return [200, { emails, atualizado: s.atualizado || null }];
+  const conhecimento = (Array.isArray(s.conhecimento) ? s.conhecimento : []).slice(0, 20); // factos sobre a FTP Porto extraídos pelo Claude
+  return [200, { emails, conhecimento, atualizado: s.atualizado || null }];
 }
 function msCalendar(start, end) {
   const s = snapLoad();

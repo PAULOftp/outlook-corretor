@@ -126,7 +126,8 @@ def ms_mail(top):
                     "trecho": re.sub(r"\s+", " ", str(m.get("trecho") or "")).strip()[:500],
                     "lido": bool(m.get("lido")), "balde": balde,
                     "resumo": str(m.get("resumo"))[:220] if m.get("resumo") else None})
-    return 200, {"emails": out, "atualizado": s.get("atualizado")}
+    conhecimento = [c for c in (s.get("conhecimento") or []) if isinstance(c, dict)][:20]  # factos sobre a FTP Porto extraídos pelo Claude
+    return 200, {"emails": out, "conhecimento": conhecimento, "atualizado": s.get("atualizado")}
 
 
 def ms_calendar(start, end):
