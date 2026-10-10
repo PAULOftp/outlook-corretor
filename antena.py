@@ -4,15 +4,13 @@ Antena da PauloIA: servidor local (só 127.0.0.1) que serve a página e vai busc
 agenda, e-mails e notícias em nome do browser. Apenas a biblioteca padrão do Python.
 
 Rotas:
-  GET  /                    -> rissa.html
-  GET  /api/ping            -> estado da antena e da ligação Microsoft 365
+  GET  /                    -> pauloia.html
+  GET  /api/ping            -> estado da antena e da sincronização Microsoft 365
   GET  /proxy?url=...       -> busca ICS/RSS (allowlist de domínios)
-  POST /api/imap            -> e-mails via IMAP (só leitura, BODY.PEEK)
-  POST /api/ms/start        -> inicia login Microsoft (device code)
-  GET  /api/ms/status       -> estado do login Microsoft
-  POST /api/ms/logout       -> esquece os tokens Microsoft
-  GET  /api/ms/mail         -> e-mails Office 365 (Microsoft Graph, só leitura)
-  GET  /api/ms/calendar     -> agenda Outlook (Microsoft Graph, só leitura)
+  POST /emails              -> e-mails via IMAP (só leitura, BODY.PEEK)
+  GET  /api/ms/status       -> estado da sincronização (ficheiro m365.json)
+  GET  /api/ms/mail         -> e-mails Office 365 lidos do m365.json
+  GET  /api/ms/calendar     -> agenda Outlook lida do m365.json
 """
 import base64
 import email
@@ -24,18 +22,16 @@ import re
 import socket
 import ssl
 import sys
-import threading
-import time
 import urllib.error
 import urllib.parse
 import urllib.request
 from email.header import decode_header, make_header
+from datetime import datetime, timedelta, timezone
 from email.utils import parseaddr, parsedate_to_datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 HOST, PORT = "127.0.0.1", 8080
 BASE = os.path.dirname(os.path.abspath(__file__))
-TOKENS_FILE = os.path.join(BASE, "antena_tokens.json")
 
 PROXY_HOSTS = {"calendar.google.com", "news.google.com", "outlook.office365.com", "outlook.live.com"}
 IMAP_HOSTS = {"imap.gmail.com"}
@@ -45,8 +41,6 @@ STATIC = {".html": "text/html; charset=utf-8", ".png": "image/png", ".ico": "ima
           ".svg": "image/svg+xml", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8"}
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Safari/537.36"
 
-MS_SCOPES = "offline_access User.Read Mail.Read Calendars.Read"
-GRAPH = "https://graph.microsoft.com/v1.0"
 
 try:
     sys.stdout.reconfigure(errors="replace")
@@ -72,190 +66,87 @@ class _AllowlistRedirect(urllib.request.HTTPRedirectHandler):
 _proxy_opener = urllib.request.build_opener(_AllowlistRedirect)
 
 
-def http_json(url, data=None, headers=None, form=False, timeout=20):
-    """Pedido HTTP que devolve (status, json) sem lançar exceção em 4xx/5xx."""
-    body = None
-    h = {"User-Agent": UA, "Accept": "application/json"}
-    h.update(headers or {})
-    if data is not None:
-        if form:
-            body = urllib.parse.urlencode(data).encode()
-            h["Content-Type"] = "application/x-www-form-urlencoded"
-        else:
-            body = json.dumps(data).encode()
-            h["Content-Type"] = "application/json"
-    req = urllib.request.Request(url, data=body, headers=h)
+# ---------------------------------------------------------------- Microsoft 365 (sem Azure)
+# Uma tarefa agendada na app Claude (conector Microsoft 365, já aprovado pela empresa) grava
+# o ficheiro m365.json nesta pasta. A antena só o lê: não é precisa permissão de administrador.
+SNAP_FILE = os.path.join(BASE, "m365.json")
+NO_SNAP = "Ainda não há dados do Outlook. Configura a tarefa agendada no Claude (⚙ → Microsoft 365)."
+
+
+def snap_load():
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:
-            return r.status, json.loads(r.read().decode("utf-8") or "{}")
-    except urllib.error.HTTPError as e:
-        try:
-            return e.code, json.loads(e.read().decode("utf-8") or "{}")
-        except Exception:
-            return e.code, {}
-
-
-# ---------------------------------------------------------------- Microsoft 365
-_ms_lock = threading.Lock()
-MS = {"state": "idle", "user_code": None, "uri": None, "error": None, "account": None}
-
-
-def _ms_load():
-    try:
-        with open(TOKENS_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
+        with open(SNAP_FILE, "r", encoding="utf-8-sig") as f:
+            txt = f.read().strip()
+        txt = re.sub(r"^```(?:json)?\s*", "", txt, flags=re.I)
+        txt = re.sub(r"```$", "", txt).strip()
+        j = json.loads(txt)
+        return j if isinstance(j, dict) else None
     except Exception:
-        return {}
+        return None
 
 
-def _ms_save(d):
-    with open(TOKENS_FILE, "w", encoding="utf-8") as f:
-        json.dump(d, f)
+def ms_state():
+    s = snap_load()
+    if not s:
+        return {"state": "idle", "account": None, "atualizado": None}
+    return {"state": "connected", "account": s.get("conta"), "atualizado": s.get("atualizado")}
 
 
-def _ms_friendly(j):
-    desc = (j.get("error_description") or "") + " " + (j.get("error") or "")
-    if "AADSTS65001" in desc or "AADSTS90094" in desc or "AADSTS90095" in desc or "admin" in desc.lower():
-        return "A FTP Porto exige aprovação do administrador para esta app. Pede à TI para aprovar a app PauloIA (só leitura)."
-    if "AADSTS7000218" in desc:
-        return "Ativa 'Permitir fluxos de cliente público' na app do Azure (separador Autenticação) e tenta outra vez."
-    if "AADSTS700016" in desc:
-        return "Não encontrei esta app no diretório. Confirma o ID da aplicação (cliente) e o ID do diretório (inquilino)."
-    if "AADSTS50194" in desc or "AADSTS90002" in desc:
-        return "Confirma o ID do diretório (inquilino) da app no portal Azure."
-    if "expired_token" in desc:
-        return "O código expirou. Clica LIGAR outra vez."
-    if "access_denied" in desc or "authorization_declined" in desc:
-        return "O pedido de acesso foi recusado."
-    if "invalid_grant" in desc:
-        return "A sessão Microsoft expirou. Clica LIGAR outra vez."
-    return (j.get("error_description") or j.get("error") or "Erro desconhecido").splitlines()[0]
+def _dt(v):
+    """ISO 8601 (com ou sem fuso, ou só data) -> datetime em UTC."""
+    if not v:
+        return None
+    v = str(v).strip().replace("Z", "+00:00")
+    v = re.sub(r"(\.\d{6})\d+", r"\1", v)  # Python antigo só aceita 6 casas decimais
+    try:
+        d = datetime.fromisoformat(v) if "T" in v else datetime.fromisoformat(v + "T00:00:00+00:00")
+    except ValueError:
+        return None
+    if d.tzinfo is None:
+        d = d.astimezone()  # hora local deste PC
+    return d.astimezone(timezone.utc)
 
 
-def _ms_poll(client_id, tenant, device_code, interval, expires_in):
-    url = "https://login.microsoftonline.com/%s/oauth2/v2.0/token" % urllib.parse.quote(tenant)
-    deadline = time.time() + expires_in
-    while time.time() < deadline:
-        time.sleep(interval)
-        st, j = http_json(url, {"grant_type": "urn:ietf:params:oauth:grant-type:device_code",
-                                "client_id": client_id, "device_code": device_code}, form=True)
-        if st == 200 and j.get("access_token"):
-            tok = {"client_id": client_id, "tenant": tenant, "refresh_token": j.get("refresh_token"),
-                   "access_token": j["access_token"], "expires_at": time.time() + int(j.get("expires_in", 3600))}
-            _, me = http_json(GRAPH + "/me?$select=displayName,userPrincipalName",
-                              headers={"Authorization": "Bearer " + tok["access_token"]})
-            tok["account"] = me.get("userPrincipalName") or me.get("displayName") or "conta Microsoft"
-            _ms_save(tok)
-            with _ms_lock:
-                MS.update(state="connected", user_code=None, uri=None, error=None, account=tok["account"])
-            say("  ✓ Microsoft 365 ligado")
-            return
-        err = j.get("error")
-        if err == "authorization_pending":
-            continue
-        if err == "slow_down":
-            interval += 5
-            continue
-        with _ms_lock:
-            MS.update(state="error", user_code=None, uri=None, error=_ms_friendly(j))
-        return
-    with _ms_lock:
-        MS.update(state="error", user_code=None, uri=None, error="O código expirou. Clica LIGAR outra vez.")
-
-
-def ms_start(client_id, tenant):
-    client_id = (client_id or "").strip()
-    tenant = (tenant or "").strip() or "organizations"
-    if not re.fullmatch(r"[0-9a-fA-F-]{36}", client_id):
-        return 400, {"erro": "O ID da aplicação (cliente) tem de ter o formato xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx."}
-    if not re.fullmatch(r"[A-Za-z0-9.-]{3,64}", tenant):
-        return 400, {"erro": "ID do diretório (inquilino) inválido."}
-    st, j = http_json("https://login.microsoftonline.com/%s/oauth2/v2.0/devicecode" % tenant,
-                      {"client_id": client_id, "scope": MS_SCOPES}, form=True)
-    if st != 200 or "device_code" not in j:
-        with _ms_lock:
-            MS.update(state="error", error=_ms_friendly(j))
-        return 200, dict(MS)
-    with _ms_lock:
-        MS.update(state="pending", user_code=j["user_code"], uri=j.get("verification_uri"), error=None)
-    threading.Thread(target=_ms_poll, daemon=True,
-                     args=(client_id, tenant, j["device_code"], int(j.get("interval", 5)), int(j.get("expires_in", 900)))).start()
-    return 200, dict(MS)
-
-
-def ms_token():
-    tok = _ms_load()
-    if not tok.get("refresh_token") and not tok.get("access_token"):
-        return None, "Microsoft 365 não está ligado. Abre ⚙ e clica LIGAR."
-    if tok.get("access_token") and tok.get("expires_at", 0) - 120 > time.time():
-        return tok["access_token"], None
-    st, j = http_json("https://login.microsoftonline.com/%s/oauth2/v2.0/token" % tok["tenant"],
-                      {"grant_type": "refresh_token", "client_id": tok["client_id"],
-                       "refresh_token": tok["refresh_token"], "scope": MS_SCOPES}, form=True)
-    if st != 200 or not j.get("access_token"):
-        with _ms_lock:
-            MS.update(state="error", error=_ms_friendly(j))
-        return None, _ms_friendly(j)
-    tok.update(access_token=j["access_token"], expires_at=time.time() + int(j.get("expires_in", 3600)))
-    if j.get("refresh_token"):
-        tok["refresh_token"] = j["refresh_token"]
-    _ms_save(tok)
-    return tok["access_token"], None
-
-
-def graph_get(path, extra_headers=None):
-    token, err = ms_token()
-    if not token:
-        return 401, {"erro": err}
-    h = {"Authorization": "Bearer " + token}
-    h.update(extra_headers or {})
-    st, j = http_json(path if path.startswith("http") else GRAPH + path, headers=h)
-    if st >= 400:
-        msg = (j.get("error") or {}).get("message") or ("Erro %d do Microsoft Graph" % st)
-        return st, {"erro": msg}
-    return st, j
+def _naive(d):
+    return d.strftime("%Y-%m-%dT%H:%M:%S.000")
 
 
 def ms_mail(top):
-    sel = "id,internetMessageId,from,subject,receivedDateTime,bodyPreview,isRead"
-    st, j = graph_get("/me/mailFolders/inbox/messages?$top=%d&$select=%s&$orderby=receivedDateTime%%20desc" % (top, sel))
-    if st != 200:
-        return st, j
+    s = snap_load()
+    if not s:
+        return 404, {"erro": NO_SNAP}
     out = []
-    for m in j.get("value", []):
-        fr = (m.get("from") or {}).get("emailAddress") or {}
-        out.append({"id": m.get("internetMessageId") or m.get("id"),
-                    "remetente": fr.get("name") or fr.get("address") or "",
-                    "email": fr.get("address") or "",
-                    "assunto": m.get("subject") or "(sem assunto)",
-                    "data": m.get("receivedDateTime"),
-                    "trecho": re.sub(r"\s+", " ", m.get("bodyPreview") or "").strip()[:500],
-                    "lido": bool(m.get("isRead"))})
-    return 200, {"emails": out}
+    for m in (s.get("emails") or [])[:top]:
+        d = _dt(m.get("data"))
+        balde = m.get("balde") if m.get("balde") in ("acao", "info", "ruido") else None
+        out.append({"id": str(m.get("id") or m.get("internetMessageId") or "%s|%s" % (m.get("assunto"), m.get("data"))),
+                    "remetente": str(m.get("remetente") or m.get("email") or ""), "email": str(m.get("email") or ""),
+                    "assunto": str(m.get("assunto") or "(sem assunto)"),
+                    "data": d.isoformat().replace("+00:00", "Z") if d else None,
+                    "trecho": re.sub(r"\s+", " ", str(m.get("trecho") or "")).strip()[:500],
+                    "lido": bool(m.get("lido")), "balde": balde,
+                    "resumo": str(m.get("resumo"))[:220] if m.get("resumo") else None})
+    return 200, {"emails": out, "atualizado": s.get("atualizado")}
 
 
 def ms_calendar(start, end):
-    q = urllib.parse.urlencode({"startDateTime": start, "endDateTime": end, "$top": "100",
-                                "$select": "subject,start,end,isAllDay,location,isCancelled",
-                                "$orderby": "start/dateTime"})
-    url = GRAPH + "/me/calendarView?" + q
+    s = snap_load()
+    if not s:
+        return 404, {"erro": NO_SNAP}
+    w0, w1 = _dt(start), _dt(end)
     events = []
-    for _ in range(5):
-        st, j = graph_get(url, {"Prefer": 'outlook.timezone="UTC"'})
-        if st != 200:
-            return st, j
-        for e in j.get("value", []):
-            if e.get("isCancelled"):
-                continue
-            events.append({"titulo": e.get("subject") or "(sem título)",
-                           "inicio": (e.get("start") or {}).get("dateTime"),
-                           "fim": (e.get("end") or {}).get("dateTime"),
-                           "diaTodo": bool(e.get("isAllDay")),
-                           "local": ((e.get("location") or {}).get("displayName") or "")})
-        url = j.get("@odata.nextLink")
-        if not url:
-            break
-    return 200, {"eventos": events}
+    for e in s.get("eventos") or []:
+        a = _dt(e.get("inicio"))
+        if not a:
+            continue
+        b = _dt(e.get("fim")) or a
+        if b <= a:  # dia inteiro com fim = início
+            b = a + timedelta(days=1 if e.get("diaTodo") else 0)
+        if w0 and w1 and not (b > w0 and a < w1) and not (w0 <= a < w1):
+            continue
+        events.append({"titulo": str(e.get("titulo") or "(sem título)"), "inicio": _naive(a), "fim": _naive(b),
+                       "diaTodo": bool(e.get("diaTodo")), "local": str(e.get("local") or "")})
+    return 200, {"eventos": events, "atualizado": s.get("atualizado")}
 
 
 # ---------------------------------------------------------------- IMAP (Gmail)
@@ -408,14 +299,11 @@ class Antena(BaseHTTPRequestHandler):
         q = urllib.parse.parse_qs(u.query)
         try:
             if u.path == "/api/ping":
-                with _ms_lock:
-                    st = dict(MS)
-                return self._json(200, {"ok": True, "versao": 1, "ms": st})
+                return self._json(200, {"ok": True, "versao": 2, "ms": ms_state()})
             if u.path == "/proxy":
                 return self._proxy((q.get("url") or [""])[0])
             if u.path == "/api/ms/status":
-                with _ms_lock:
-                    return self._json(200, dict(MS))
+                return self._json(200, ms_state())
             if u.path == "/api/ms/mail":
                 return self._json(*ms_mail(max(1, min(int((q.get("top") or ["20"])[0]), 50))))
             if u.path == "/api/ms/calendar":
@@ -432,21 +320,11 @@ class Antena(BaseHTTPRequestHandler):
         path = urllib.parse.urlsplit(self.path).path
         try:
             data = self._body()
-            if path == "/api/imap":
+            if path in ("/emails", "/api/imap"):
                 host = (data.get("host") or "imap.gmail.com").strip().lower()
                 if host not in IMAP_HOSTS:
                     return self._json(403, {"erro": "Servidor IMAP não autorizado: %s" % host})
                 return self._json(*imap_fetch(host, data.get("usuario", ""), data.get("senhaApp", ""), data.get("quantidade", 20)))
-            if path == "/api/ms/start":
-                return self._json(*ms_start(data.get("clientId"), data.get("tenant")))
-            if path == "/api/ms/logout":
-                try:
-                    os.remove(TOKENS_FILE)
-                except FileNotFoundError:
-                    pass
-                with _ms_lock:
-                    MS.update(state="idle", user_code=None, uri=None, error=None, account=None)
-                return self._json(200, dict(MS))
             return self._json(404, {"erro": "Rota desconhecida"})
         except (socket.timeout, OSError) as e:
             return self._json(502, {"erro": "Sem ligação ao servidor de e-mail (%s)." % type(e).__name__})
@@ -473,7 +351,7 @@ class Antena(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def _static(self, path):
-        name = urllib.parse.unquote(path.lstrip("/")) or "rissa.html"
+        name = urllib.parse.unquote(path.lstrip("/")) or "pauloia.html"
         ext = os.path.splitext(name)[1].lower()
         full = os.path.join(BASE, name)
         if "/" in name or "\\" in name or name.startswith(".") or ext not in STATIC or not os.path.isfile(full):
@@ -489,15 +367,12 @@ class Antena(BaseHTTPRequestHandler):
 
 
 def main():
-    tok = _ms_load()
-    if tok.get("refresh_token"):
-        MS.update(state="connected", account=tok.get("account"))
     try:
         srv = ThreadingHTTPServer((HOST, PORT), Antena)
     except OSError:
         say("\n  ✗ A porta %d já está ocupada." % PORT)
         say("    Provavelmente a antena já está a correr noutra janela (ou ficou aberto o servidor antigo).")
-        say("    Fecha essa janela e corre o iniciar-rissa.bat outra vez.\n")
+        say("    Fecha essa janela e corre o iniciar-pauloia.bat outra vez.\n")
         try:
             input("  Carrega em Enter para fechar...")
         except EOFError:
@@ -505,7 +380,7 @@ def main():
         sys.exit(1)
     say("")
     say("  ⚡ ANTENA DA PAULOIA ONLINE — porta %d (só neste PC)." % PORT)
-    say("     Abre http://localhost:%d/rissa.html  ·  Mantém esta janela aberta." % PORT)
+    say("     Abre http://localhost:%d/pauloia.html  ·  Mantém esta janela aberta." % PORT)
     say("")
     try:
         srv.serve_forever()

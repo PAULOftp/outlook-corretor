@@ -1043,8 +1043,9 @@ $("#btnActivate").addEventListener("click", () => {
 "use strict";
 
 /* ---------------- Configuração persistente ---------------- */
-// Antena Node (server.js): o jarvis.html abre com duplo clique e fala com ela em 127.0.0.1:4242
-const ANT = (location.protocol.startsWith("http") && location.port === "4242") ? "" : "http://127.0.0.1:4242";
+// Servida pela antena (iniciar-pauloia.bat → localhost:8080, ou node server.js → localhost:4242): mesma origem.
+// Aberta com duplo clique (file://): fala com a antena Node em 127.0.0.1:4242.
+const ANT = location.protocol.startsWith("http") ? "" : "http://127.0.0.1:4242";
 const jget = (k, d) => { try { const v = JSON.parse(LS.get(k)); return v == null ? d : v; } catch (e) { return d; } };
 const jset = (k, v) => LS.set(k, JSON.stringify(v));
 
@@ -1166,7 +1167,9 @@ $("#orb").addEventListener("click", () => { if (uiState === "speaking") stopLong
 class AntOff extends Error {}
 let antOnline = null, msState = null;
 function offMsg() {
-  return "ANTENA OFFLINE — abre um terminal na pasta do Jarvis, corre: node server.js e mantém-no aberto.";
+  return location.protocol.startsWith("http")
+    ? "ANTENA OFFLINE — abre a PauloIA pelo iniciar-pauloia.bat e mantém a janela da antena aberta."
+    : "ANTENA OFFLINE — abre a PauloIA pelo iniciar-pauloia.bat (ou corre: node server.js na pasta e mantém o terminal aberto).";
 }
 function refreshAntChip() {
   const c = $("#antChip");
@@ -1834,7 +1837,7 @@ $("#btnActivate").addEventListener("click", () => {
    ===================================================================== */
 async function working(p) { busy = true; setState("thinking"); try { return await p; } finally { busy = false; } }
 function sayToday() {
-  if (AG.offline && !AG.eventos.length) return "A antena está desligada, " + addr + ". Corre o node server.js para eu ver a agenda.";
+  if (AG.offline && !AG.eventos.length) return "A antena está desligada, " + addr + ". Corre o iniciar-pauloia.bat para eu ver a agenda.";
   const evs = eventsByDay().get(dayKey(new Date())) || [];
   if (!evs.length) return "Hoje tens a agenda livre, " + addr + ". Aproveita!";
   return "Hoje tens " + plural(evs.length, "compromisso", "compromissos") + ": " + evs.slice(0, 8).map(e => e.diaTodo ? e.titulo + ", o dia todo" : "às " + hmSpeak(e.inicio) + ", " + e.titulo).join("; ") + ".";
@@ -1856,7 +1859,7 @@ function sayWeek() {
   return parts.length ? "Nos próximos dias: " + parts.join("; ") + "." : "Os próximos dias estão livres, " + addr + ".";
 }
 function sayActions(onlyImportant) {
-  if (EM.offline && !EM.lista.length) return "A antena está desligada, " + addr + ". Corre o node server.js para eu ver os e-mails.";
+  if (EM.offline && !EM.lista.length) return "A antena está desligada, " + addr + ". Corre o iniciar-pauloia.bat para eu ver os e-mails.";
   if (!mailAccounts()) return "Ainda não ligaste nenhuma conta de e-mail. Abre a engrenagem e liga o Microsoft 365 ou o Gmail.";
   const a = byBucket("acao");
   const list = a.slice(0, 5).map(m => "De " + m.remetente + ": " + String(m.resumo).replace(/[.!\s]+$/, "")).join(". ");
@@ -1864,7 +1867,7 @@ function sayActions(onlyImportant) {
   return "Analisei " + EM.lista.length + " e-mails: " + a.length + " de ação, " + byBucket("info").length + " de informação e " + byBucket("ruido").length + " de ruído." + (a.length ? " Os de ação: " + list + "." : "");
 }
 function sayNews(topic) {
-  if (NW.offline && !NW.t) return "A antena está desligada, " + addr + ". Corre o node server.js para eu ir buscar as notícias.";
+  if (NW.offline && !NW.t) return "A antena está desligada, " + addr + ". Corre o iniciar-pauloia.bat para eu ir buscar as notícias.";
   const temas = topic ? [topic] : cfg.news.temas;
   const parts = temas.filter(t => NW.data[t.nome] && NW.data[t.nome].length).map(t => t.nome + ": " + NW.data[t.nome].slice(0, topic ? 3 : 2).map(i => i.titulo).join(". "));
   return parts.length ? "Aqui vão as manchetes. " + parts.join(". ") + "." : "Não encontrei manchetes de momento.";
@@ -1982,7 +1985,7 @@ function msPrompt() {
     "2. Lê os eventos do meu calendário Outlook desde hoje às 00:00 até daqui a 8 dias.\n" +
     "3. Classifica cada e-mail num balde: \"acao\" (pede resposta, tarefa, decisão ou tem prazo; alguém está à minha espera. " + (cfg.mail.prioridade || "") + "), " +
     "\"info\" (vale a pena saber mas não exige nada) ou \"ruido\" (promoções, newsletters, notificações automáticas). Escreve um resumo de uma frase em português europeu.\n" +
-    "4. Grava o ficheiro m365.json na pasta do Jarvis (substitui o anterior), só com JSON válido e sem texto à volta, neste formato:\n" +
+    "4. Grava o ficheiro m365.json na pasta da PauloIA (substitui o anterior), só com JSON válido e sem texto à volta, neste formato:\n" +
     '{"atualizado":"<agora, ISO 8601 com fuso>","conta":"<o meu e-mail>","emails":[{"id":"<internetMessageId>","remetente":"<nome>","email":"<endereço>","assunto":"...","data":"<ISO 8601>","trecho":"<até 300 caracteres do início do corpo>","lido":true,"balde":"acao","resumo":"..."}],' +
     '"eventos":[{"titulo":"...","inicio":"<ISO 8601 com fuso>","fim":"<ISO 8601 com fuso>","diaTodo":false,"local":"..."}]}\n' +
     "Regras: não envies, respondas, movas, apagues nem marques como lido nenhum e-mail; não alteres o calendário; não cries nem alteres outros ficheiros.";
@@ -2000,7 +2003,7 @@ function openCfg() {
   <div class="cfg-sec"><h4>MICROSOFT 365 · E-MAIL E AGENDA DE TRABALHO (VIA CLAUDE)</h4>
     <ol class="howto">
       <li>Abre a <b>app Claude no PC</b> (a conta que já tem o conector <b>Microsoft 365</b> ligado). Não precisas de Azure nem de administrador.</li>
-      <li>Cria uma <b>tarefa agendada</b> (Cowork → Tarefas agendadas), com acesso à <b>pasta do Jarvis</b>, a repetir <b>de hora a hora</b> nos dias úteis.</li>
+      <li>Cria uma <b>tarefa agendada</b> (Cowork → Tarefas agendadas), com acesso à <b>pasta da PauloIA</b> (ex.: C:\\Rissa), a repetir <b>de hora a hora</b> nos dias úteis.</li>
       <li>Clica <b>COPIAR PEDIDO</b> e cola-o como instrução da tarefa.</li>
       <li>Corre a tarefa uma vez: aparece o ficheiro <code>m365.json</code> na pasta e a PauloIA começa a usá-lo.</li>
     </ol>
