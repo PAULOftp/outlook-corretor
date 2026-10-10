@@ -2528,8 +2528,69 @@ async function unzip(file, want) {
   return out;
 }
 const LI_FILES = /(^|\/)(Profile|Profile Summary|Positions|Education|Skills|Certifications|Languages|Honors|Projects|Courses|Publications|Volunteering|Recommendations_Received|Endorsement_Received_Info)\.csv$/i;
-const FB_FILES = /\.json$/i, FB_SKIP = /message|inbox|chat|comment|search|location|device|ads_|security|login|payment|logged|activity_messages/i;
-const FB_KEEP = /profile_information|about_you|your_posts|posts_\d|post|groups|pages|work|education|interests|events/i;
+// Facebook (JSON ou HTML): só perfil, experiências, publicações, páginas e grupos. Nunca mensagens, contactos, logins ou publicidade.
+const FB_FILES = /(^|\/)(profile_information|your_experiences|profile_update_history|your_posts__check_ins__photos_and_videos_\d+|posts_on_other_pages_and_profiles|pages_you've_liked|pages_and_profiles_you_follow|your_group_membership_activity|group_posts_and_comments|your_comments_in_groups|preferred_language)\.(html|json)$/i;
+const FB_SKIP = /messages|inbox|contacts|autofill|devices|login|security|ads_information|payments|logged_information/i;
+function htmlText(h) {
+  const d = new DOMParser().parseFromString(h, "text/html");
+  d.querySelectorAll("style,script,head,img,svg").forEach(e => e.remove());
+  return (d.body ? d.body.textContent : "").replace(/\s+/g, " ").trim();
+}
+// CSV (aspas, vírgulas e quebras de linha dentro de campos)
+function parseCsv(t) {
+  const rows = []; let row = [], f = "", q = false;
+  t = t.replace(/^\uFEFF/, "");
+  for (let i = 0; i < t.length; i++) {
+    const c = t[i];
+    if (q) { if (c === '"') { if (t[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += c; }
+    else if (c === '"') q = true;
+    else if (c === ",") { row.push(f); f = ""; }
+    else if (c === "\n" || c === "\r") { if (c === "\r" && t[i + 1] === "\n") i++; row.push(f); rows.push(row); row = []; f = ""; }
+    else f += c;
+  }
+  if (f || row.length) { row.push(f); rows.push(row); }
+  const hi = rows.findIndex(r => r.length > 1 || /name|title/i.test(r[0] || ""));
+  if (hi < 0) return [];
+  const head = rows[hi].map(h => h.trim());
+  return rows.slice(hi + 1).filter(r => r.some(x => x.trim())).map(r => Object.fromEntries(head.map((h, i) => [h, (r[i] || "").trim()])));
+}
+// LinkedIn sem IA: factos tirados diretamente dos CSV (funciona mesmo sem quota)
+function linkedinLocalFacts(parts) {
+  const by = n => { const p = parts.find(x => new RegExp("(^|/)" + n + "\\.csv$", "i").test(x.name)); return p ? parseCsv(p.text) : []; };
+  const F = [];
+  const pr = by("Profile")[0];
+  if (pr) {
+    if (pr["Headline"]) F.push({ area: "trabalho", titulo: "Perfil LinkedIn", texto: "Título no LinkedIn: " + pr["Headline"] });
+    if (pr["Industry"]) F.push({ area: "trabalho", titulo: "Perfil LinkedIn", texto: "Setor: " + pr["Industry"] });
+    if (pr["Geo Location"]) F.push({ area: "meta", titulo: "Paulo", texto: "Localização no LinkedIn: " + pr["Geo Location"] });
+    if (pr["Summary"]) F.push({ area: "trabalho", titulo: "Perfil LinkedIn", texto: "Resumo: " + pr["Summary"].replace(/\s+/g, " ").slice(0, 280) });
+  }
+  for (const r of by("Positions").slice(0, 8)) {
+    if (!r["Company Name"]) continue;
+    F.push({ area: "trabalho", titulo: r["Company Name"].slice(0, 40), texto: (r["Title"] || "Cargo") + " na " + r["Company Name"] + (r["Started On"] ? ", desde " + r["Started On"] : "") + (r["Finished On"] ? " até " + r["Finished On"] : " (atual)") + "." });
+  }
+  for (const r of by("Education").slice(0, 6)) {
+    if (!r["School Name"]) continue;
+    F.push({ area: "aprendizado", titulo: r["School Name"].slice(0, 40), texto: [r["Degree Name"], r["Notes"]].filter(Boolean).join(" · ").slice(0, 200) || "Estudou aqui" + (r["Start Date"] ? " (" + r["Start Date"] + (r["End Date"] ? "–" + r["End Date"] : "") + ")" : "") + "." });
+  }
+  const skills = by("Skills").map(r => r["Name"]).filter(Boolean);
+  if (skills.length) F.push({ area: "aprendizado", titulo: "Competências", texto: "Competências no LinkedIn: " + skills.slice(0, 25).join(", ") + "." });
+  const langs = by("Languages").map(r => r["Name"] + (r["Proficiency"] ? " (" + r["Proficiency"] + ")" : "")).filter(x => x && x !== "undefined");
+  if (langs.length) F.push({ area: "aprendizado", titulo: "Línguas", texto: "Línguas: " + langs.join(", ") + "." });
+  const courses = by("Courses").map(r => r["Name"]).filter(Boolean);
+  if (courses.length) F.push({ area: "aprendizado", titulo: "Cursos", texto: "Cursos no LinkedIn: " + courses.slice(0, 15).join(", ") + "." });
+  const certs = by("Certifications").map(r => r["Name"] + (r["Authority"] ? " (" + r["Authority"] + ")" : "")).filter(Boolean);
+  if (certs.length) F.push({ area: "aprendizado", titulo: "Certificações", texto: "Certificações: " + certs.slice(0, 10).join(", ") + "." });
+  return F;
+}
+function friendlyAiError(e) {
+  const m = String(e && e.message || e);
+  if (/sem chave|Preciso da chave/i.test(m)) return "Sem chave da API: aprendi só o que dava sem IA.";
+  if (/429/.test(m)) return "A quota gratuita do Gemini esgotou por agora; tenta outra vez daqui a uns minutos para eu aprender o resto.";
+  if (/40[13]/.test(m)) return "A chave da API foi recusada.";
+  if (/Failed to fetch|NetworkError/i.test(m)) return "Sem ligação à IA.";
+  return "A IA falhou (" + m.slice(0, 80) + ").";
+}
 function fbFix(s) { try { return decodeURIComponent(escape(s)); } catch (e) { return s; } } // o Facebook exporta UTF-8 "às avessas"
 function fbFlatten(o, out, key) {
   if (out.length > 600) return;
@@ -2541,7 +2602,7 @@ async function importFiles(files, kind) {
   const parts = [];
   for (const f of files) {
     if (/\.zip$/i.test(f.name)) {
-      const want = kind === "linkedin" ? n => LI_FILES.test(n) : n => FB_FILES.test(n) && FB_KEEP.test(n) && !FB_SKIP.test(n);
+      const want = kind === "linkedin" ? n => LI_FILES.test(n) : n => FB_FILES.test(n) && !FB_SKIP.test(n);
       parts.push(...await unzip(f, want));
     } else parts.push({ name: f.name, text: await f.text() });
   }
@@ -2549,19 +2610,27 @@ async function importFiles(files, kind) {
   const blocks = parts.map(pt => {
     let t = pt.text;
     if (kind === "facebook" && /\.json$/i.test(pt.name)) { const lines = []; try { fbFlatten(JSON.parse(t), lines, ""); } catch (e) {} t = [...new Set(lines)].join("\n"); }
+    else if (/\.html$/i.test(pt.name)) t = htmlText(t);
     return "### " + pt.name.split("/").pop() + "\n" + t.slice(0, 8000);
   });
-  return learnFromText(blocks.join("\n\n"), FONTES[kind]);
+  let n = kind === "linkedin" ? learnFacts(linkedinLocalFacts(parts), "LinkedIn") : 0; // base sem IA
+  try { n += await learnFromText(blocks.join("\n\n"), FONTES[kind]); }
+  catch (e) {
+    console.warn("Aprendizagem por IA falhou", e);
+    if (!n) throw new Error(friendlyAiError(e));
+    return { n, aviso: friendlyAiError(e) };
+  }
+  return n;
 }
 function setLearnStatus(msg, err) { const el = hasEl("learnStatus"); if (el) { el.textContent = msg; el.classList.toggle("err", !!err); } }
 async function runLearn(job, label) {
   setLearnStatus("A aprender com " + label + "…");
   try {
-    const n = await job();
+    const r = await job(), n = typeof r === "number" ? r : r.n;
     const msg = n ? "Aprendi " + plural(n, "facto novo", "factos novos") + " com " + label + ", " + addr + "." : "Li tudo, mas não havia nada de novo para aprender, " + addr + ".";
-    setLearnStatus(msg);
+    setLearnStatus(msg + (r && r.aviso ? " " + r.aviso : ""), !!(r && r.aviso));
     if (!busy) sayLong(msg);
-  } catch (e) { setLearnStatus(e.message, true); }
+  } catch (e) { setLearnStatus(/quota|chave|ligação|IA falhou|Não encontrei|não é um ZIP/i.test(e.message) ? e.message : friendlyAiError(e), true); }
 }
 function allFacts() {
   const out = [];
@@ -2579,7 +2648,7 @@ function renderLearn() {
       '<input type="file" id="liFile" accept=".zip,.csv" multiple></div>' +
     '<div class="lcard"><h4>FACEBOOK</h4><ol>' +
       '<li>Abre <a href="https://accountscenter.facebook.com/info_and_permissions/dyi" target="_blank" rel="noopener">Centro de Contas → Transferir as tuas informações</a>.</li>' +
-      '<li>Escolhe <b>formato JSON</b> e só <b>Informações do perfil</b> e <b>Publicações</b> (as mensagens ficam de fora).</li>' +
+      '<li>Formato <b>HTML ou JSON</b>. Basta <b>Informações do perfil</b>, <b>Publicações</b>, <b>Páginas</b> e <b>Grupos</b> (as mensagens nunca são lidas).</li>' +
       '<li>Descarrega o ZIP e escolhe-o aqui.</li></ol>' +
       '<input type="file" id="fbFile" accept=".zip,.json" multiple></div>' +
     '<div class="lcard"><h4>COLAR TEXTO</h4>' +
