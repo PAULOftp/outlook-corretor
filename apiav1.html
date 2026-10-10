@@ -306,6 +306,13 @@ body.idle .hud #status:not(.err){color:#ff8a7a}
 #faceCv{position:absolute;left:-40px;top:-40px;width:calc(100% + 80px);height:calc(100% + 80px);cursor:pointer;display:none}
 body.face #faceCv{display:block}
 body.face .hud-orb .orb,body.face .hud-orb .orbit{opacity:0;pointer-events:none}
+#photoCv{position:absolute;inset:0;width:100%;height:100%;border-radius:16px;cursor:pointer;display:none;transition:box-shadow .3s}
+body.photo #photoCv{display:block}
+body.photo .hud-orb{width:300px;height:390px}
+body.photo .hud-orb .orb,body.photo .hud-orb .orbit{opacity:0;pointer-events:none}
+body.photo.listening #photoCv{box-shadow:0 0 0 2px rgba(0,200,255,.55),0 0 34px rgba(0,200,255,.45)}
+body.photo.speaking #photoCv{box-shadow:0 0 0 1px rgba(0,200,255,.35),0 0 26px rgba(0,200,255,.25)}
+@media (max-width:820px){body.photo .hud-orb{width:240px;height:312px}}
 .musicbar{margin-top:14px;display:flex;gap:16px;align-items:center;border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:12px 14px;animation:rise .4s ease both}
 .musicbar[hidden]{display:none}
 .mframe{flex:none;width:256px;height:144px;border-radius:6px;overflow:hidden;background:#000;border:1px solid var(--line)}
@@ -357,6 +364,7 @@ body.face .hud-orb .orb,body.face .hud-orb .orbit{opacity:0;pointer-events:none}
     <i class="cnr tl"></i><i class="cnr tr"></i><i class="cnr bl"></i><i class="cnr br"></i>
     <div class="hud-orb">
       <canvas id="faceCv" aria-hidden="true" title="Clica para eu te ouvir"></canvas>
+      <canvas id="photoCv" aria-hidden="true" title="Clica para eu te ouvir"></canvas>
       <div class="orbit o3"><b></b><b></b></div><div class="orbit o1"><b></b></div><div class="orbit o2"><b></b></div>
       <div class="orb" id="orb" title="Clica para eu te ouvir">
         <div class="ring w w1"></div><div class="ring w w2"></div><div class="ring w w3"></div>
@@ -1185,7 +1193,7 @@ const DEF = {
             conteudo: { agenda: true, emails: true, noticias: true, foco: true } },
   engine: { nivel: "equilibrado", economia: true },
   learn: { emails: true },
-  voz: { avatar: "rosto", motor: "auto", voz: "Kore", modelo: "", estilo: "Lê em português europeu de Portugal, com sotaque de Lisboa e nunca brasileiro, num tom natural, caloroso e descontraído" }
+  voz: { avatar: "foto", av2: true, motor: "auto", voz: "Kore", modelo: "", estilo: "Lê em português europeu de Portugal, com sotaque de Lisboa e nunca brasileiro, num tom natural, caloroso e descontraído" }
 };
 function loadCfg(key, def) {
   const v = jget(key, null);
@@ -2300,7 +2308,7 @@ function openCfg() {
   <div class="cfg-sec"><h4>VOZ</h4>
     <div class="grid2">
       <label>MOTOR DE VOZ<select id="cVozMotor"><option value="auto">Automático · voz Natural do Edge se houver, senão Gemini</option><option value="gemini">Gemini · natural (usa a chave Gemini, quota gratuita)</option><option value="browser">Browser · grátis e ilimitada</option></select></label>
-      <label>AVATAR<select id="cAvatar"><option value="rosto">Rosto de partículas (mexe os lábios)</option><option value="esfera">Esfera (reator)</option></select></label>
+      <label>AVATAR<select id="cAvatar"><option value="foto">Fotografia da agente (boca animada)</option><option value="rosto">Rosto de partículas</option><option value="esfera">Esfera (reator)</option></select></label>
       <label>VOZ GEMINI<select id="cVozVoz">${VOZES.map(([k, l]) => `<option value="${k}">${l}</option>`).join("")}</select></label>
     </div>
     <label>ESTILO (instrução de sotaque e tom)<input id="cVozEstilo"></label>
@@ -2373,7 +2381,7 @@ function openCfg() {
   <div class="row"><button class="btn ghost" id="cfgCancel" type="button">CANCELAR</button><button class="btn" id="cfgSave" type="button">GUARDAR</button></div>`;
   const v = (id, val) => { $("#" + id).value = val == null ? "" : val; }, ck = (id, val) => { $("#" + id).checked = !!val; };
   v("cNivel", c.eng.nivel); ck("cEco", c.eng.economia);
-  v("cAvatar", c.voz.avatar || "rosto"); v("cVozMotor", c.voz.motor); v("cVozVoz", c.voz.voz); v("cVozEstilo", c.voz.estilo);
+  v("cAvatar", c.voz.avatar || "foto"); v("cVozMotor", c.voz.motor); v("cVozVoz", c.voz.voz); v("cVozEstilo", c.voz.estilo);
   $("#dataExport").onclick = () => {
     const out = {};
     for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (/^jarvis_|^anthropic_key$/.test(k)) out[k] = localStorage.getItem(k); }
@@ -2682,10 +2690,84 @@ function makeSprite(rgb) {
 }
 const SPR = { blue: makeSprite("0,200,255"), violet: makeSprite("167,139,250") };
 let faceOn = false, fT0 = performance.now(), mouth = 0, blink = 0, nextBlink = 2;
+{ const sv = jget("jarvis_voice_cfg", null); if (sv && !sv.av2) { cfg.voz.avatar = "foto"; cfg.voz.av2 = true; jset("jarvis_voice_cfg", cfg.voz); } } // a fotografia passa a ser a cara por defeito
+let photoLoop = false;
 function applyAvatar() {
-  faceOn = (cfg.voz.avatar || "rosto") === "rosto";
+  const mode = cfg.voz.avatar || "foto";
+  const wasFace = faceOn;
+  faceOn = mode === "rosto";
   document.body.classList.toggle("face", faceOn);
-  if (faceOn) requestAnimationFrame(faceFrame);
+  document.body.classList.toggle("photo", mode === "foto");
+  if (faceOn && !wasFace) requestAnimationFrame(faceFrame);
+  if (mode === "foto" && !photoLoop) { photoLoop = true; requestAnimationFrame(photoFrame); }
+}
+
+/* ---------------- AVATAR FOTOGRAFIA: a cara da agente, com a boca animada pela voz ---------------- */
+// Coordenadas na imagem apiav1-avatar.jpg (1000×1300): cantos da boca, linha entre os lábios e fundo do queixo
+const AV = { img: new Image(), ok: false, mx0: 392, mx1: 632, split: 820, end: 1070, col: 3, max: 26 };
+AV.img.onload = () => { AV.ok = true; };
+AV.img.src = "apiav1-avatar.jpg";
+const photoCv = $("#photoCv"), pctx = photoCv.getContext("2d");
+photoCv.addEventListener("click", () => $("#orb").click());
+const motes = Array.from({ length: 46 }, () => ({ x: Math.random() * 1000, y: 700 + Math.random() * 600, v: 10 + Math.random() * 30, r: 1.5 + Math.random() * 3, ph: Math.random() * 6.28 }));
+let pLast = 0;
+function photoFrame(now) {
+  if ((cfg.voz.avatar || "foto") !== "foto") { photoLoop = false; return; }
+  requestAnimationFrame(photoFrame);
+  const dpr = window.devicePixelRatio || 1, cw = photoCv.clientWidth, ch = photoCv.clientHeight;
+  if (!cw || !AV.ok) return;
+  if (photoCv.width !== Math.round(cw * dpr) || photoCv.height !== Math.round(ch * dpr)) { photoCv.width = Math.round(cw * dpr); photoCv.height = Math.round(ch * dpr); }
+  const W = photoCv.width, H = photoCv.height, t = now / 1000, dt = Math.min(0.05, (now - (pLast || now)) / 1000), st = uiState;
+  pLast = now;
+  const IW = AV.img.width, IH = AV.img.height, s = Math.max(W / IW, H / IH) * (1 + 0.006 * Math.sin(t * 1.3));
+  const ox = (W - IW * s) / 2, oy = (H - IH * s) / 2;
+  mouth += (speechLevel() - mouth) * 0.35;
+  pctx.setTransform(1, 0, 0, 1, 0, 0);
+  pctx.clearRect(0, 0, W, H);
+  pctx.setTransform(s, 0, 0, s, ox, oy);
+  pctx.drawImage(AV.img, 0, 0);
+  // Boca: o lábio inferior e o queixo descem coluna a coluna (mais no centro, nada nos cantos) e aparece o interior da boca
+  const o = Math.min(1, mouth * 1.15) * AV.max;
+  if (o > 0.5) {
+    const span = AV.mx1 - AV.mx0, hh = AV.end - AV.split;
+    // interior da boca: escuro em cima, tom de língua em baixo
+    const cav = pctx.createLinearGradient(0, AV.split - 3, 0, AV.split + o);
+    cav.addColorStop(0, "rgb(14,4,10)"); cav.addColorStop(0.65, "rgb(38,10,22)"); cav.addColorStop(1, "rgb(92,32,52)");
+    for (let x = AV.mx0; x < AV.mx1; x += AV.col) {
+      const d = o * Math.pow(Math.sin(Math.PI * (x + AV.col / 2 - AV.mx0) / span), 1.35); // lente: afina nos cantos
+      if (d < 0.3) continue;
+      pctx.fillStyle = cav;
+      pctx.fillRect(x, AV.split - 3, AV.col + 0.6, d + 3);
+      pctx.drawImage(AV.img, x, AV.split, AV.col, hh, x, AV.split + d, AV.col + 0.6, hh - d);
+      // sombra suave por cima do lábio inferior (dá profundidade)
+      const sh = pctx.createLinearGradient(0, AV.split + d, 0, AV.split + d + 7);
+      sh.addColorStop(0, "rgba(10,2,8,0.55)"); sh.addColorStop(1, "rgba(10,2,8,0)");
+      pctx.fillStyle = sh;
+      pctx.fillRect(x, AV.split + d, AV.col + 0.6, 7);
+    }
+  }
+  pctx.setTransform(1, 0, 0, 1, 0, 0);
+  // A pensar: linha de leitura holográfica a descer pela cara
+  if (st === "thinking") {
+    const y = ((t * 0.45) % 1) * H, g = pctx.createLinearGradient(0, y - 40, 0, y + 40);
+    g.addColorStop(0, "rgba(139,92,246,0)"); g.addColorStop(0.5, "rgba(139,92,246,0.35)"); g.addColorStop(1, "rgba(139,92,246,0)");
+    pctx.fillStyle = g; pctx.fillRect(0, y - 40, W, 80);
+  }
+  // Partículas de luz a subir pelo pescoço
+  pctx.globalCompositeOperation = "lighter";
+  for (const m of motes) {
+    m.y -= m.v * dt;
+    if (m.y < 650) { m.y = 1300; m.x = Math.random() * 1000; }
+    const r = m.r * s * 2.2;
+    pctx.globalAlpha = (0.35 + 0.35 * Math.sin(t * 2 + m.ph)) * (st === "listening" ? 1 : 0.6);
+    pctx.drawImage(SPR.blue, ox + m.x * s - r, oy + m.y * s - r, r * 2, r * 2);
+  }
+  pctx.globalAlpha = 1;
+  pctx.globalCompositeOperation = "source-over";
+  // Vinheta para a fotografia se fundir com o HUD
+  const vg = pctx.createRadialGradient(W / 2, H * 0.45, Math.min(W, H) * 0.38, W / 2, H * 0.48, Math.max(W, H) * 0.64);
+  vg.addColorStop(0, "rgba(4,10,20,0)"); vg.addColorStop(1, "rgba(4,10,20,0.95)");
+  pctx.fillStyle = vg; pctx.fillRect(0, 0, W, H);
 }
 faceCv.addEventListener("click", () => $("#orb").click());
 function faceFrame(now) {

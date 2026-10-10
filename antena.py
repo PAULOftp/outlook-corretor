@@ -37,7 +37,7 @@ PROXY_HOSTS = {"calendar.google.com", "news.google.com", "outlook.office365.com"
 IMAP_HOSTS = {"imap.gmail.com"}
 ALLOWED_HOSTS = {"localhost:%d" % PORT, "127.0.0.1:%d" % PORT}
 ALLOWED_ORIGINS = {"http://localhost:%d" % PORT, "http://127.0.0.1:%d" % PORT}
-STATIC = {".html": "text/html; charset=utf-8", ".webmanifest": "application/manifest+json", ".png": "image/png", ".ico": "image/x-icon",
+STATIC = {".html": "text/html; charset=utf-8", ".jpg": "image/jpeg", ".webmanifest": "application/manifest+json", ".png": "image/png", ".ico": "image/x-icon",
           ".svg": "image/svg+xml", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8"}
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Safari/537.36"
 

@@ -24,7 +24,7 @@ const IMAP_HOSTS = new Set(["imap.gmail.com"]);
 // "null" é a origem de uma página aberta com duplo clique (file://)
 const ALLOWED_ORIGINS = new Set(["null", "http://localhost:" + PORT, "http://127.0.0.1:" + PORT]);
 const ALLOWED_HOSTS = new Set(["localhost:" + PORT, "127.0.0.1:" + PORT]);
-const STATIC = { ".html": "text/html; charset=utf-8", ".webmanifest": "application/manifest+json", ".png": "image/png", ".ico": "image/x-icon", ".svg": "image/svg+xml" };
+const STATIC = { ".html": "text/html; charset=utf-8", ".jpg": "image/jpeg", ".webmanifest": "application/manifest+json", ".png": "image/png", ".ico": "image/x-icon", ".svg": "image/svg+xml" };
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Safari/537.36";
 
 /* ------------------------------------------------------------ HTTP de saída */
