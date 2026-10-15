@@ -1825,6 +1825,7 @@ setInterval(() => loadAgenda(), 10 * 60000);
 /* =====================================================================
    E-MAILS
    ===================================================================== */
+const M365_STALE = 26 * 36e5; // a tarefa do Claude corre uma vez por dia (8:30): só avisa se passar mais de um dia
 const EM = { lista: [], erros: [], offline: false, t: 0 };
 const TRI_KEY = "jarvis_email_triage";
 let triage = jget(TRI_KEY, {});
@@ -1886,7 +1887,7 @@ function loadEmails(force) {
     const q = +cfg.mail.quantidade || 20, all = [], errs = [];
     let off = false;
     const add = (acc, cor) => j => {
-      if (j.atualizado && Date.now() - new Date(j.atualizado) > 3 * 36e5) errs.push({ nome: acc, erro: "dados do Outlook de " + ago(new Date(j.atualizado)) + " — confirma a tarefa agendada no Claude.", soft: true });
+      if (j.atualizado && Date.now() - new Date(j.atualizado) > M365_STALE) errs.push({ nome: acc, erro: "dados do Outlook de " + ago(new Date(j.atualizado)) + " — confirma a tarefa agendada no Claude.", soft: true });
       if (cfg.learn.emails && Array.isArray(j.conhecimento)) learnFacts(j.conhecimento, "Outlook");
       for (const m of j.emails) {
         if (m.balde && m.resumo && (!triage[m.id] || triage[m.id].local)) triage[m.id] = { balde: m.balde, resumo: m.resumo, t: Date.now() }; // triagem já feita pelo Claude
@@ -2298,9 +2299,9 @@ function renderMs(st) {
   if (antOnline === false) { box.innerHTML = '<div class="msstate err">' + esc(offMsg()) + "</div>"; return; }
   if (!st || st.state !== "connected") { box.innerHTML = '<div class="msstate">Ainda sem m365.json na pasta. Corre a tarefa agendada no Claude.</div>'; return; }
   const t = st.atualizado ? new Date(st.atualizado) : null;
-  const old = t && Date.now() - t > 3 * 36e5;
+  const old = t && Date.now() - t > M365_STALE;
   box.innerHTML = '<div class="msstate ' + (old ? "err" : "ok") + '">' + (old ? "⚠ " : "✓ ") + "Sincronizado " + (t ? esc(ago(t)) : "") + (st.account ? " · " + esc(st.account) : "") +
-    (old ? " — confirma se a tarefa agendada do Claude está a correr." : "") + "</div>";
+    (old ? " — a tarefa agendada do Claude não corre há mais de um dia; confirma se a app Claude esteve aberta às 8:30." : "") + "</div>";
 }
 function msPrompt() {
   return "Tarefa: sincronizar o Outlook para a A.P.IAv1 (só leitura).\n" +
