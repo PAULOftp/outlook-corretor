@@ -35,7 +35,8 @@ O assistente chama-se **A.P.IAv1** e é chamado em voz alta com **"Olá IA"**. �
   - **Sem notas soltas:** `placeFact`/`findHome` encaixam cada facto na nota com o título exato, numa nota cujo título aparece no facto, ou numa nota-agregadora fixa por área (`HUBS`: Carreira, Formação, Rede profissional, Saúde; as restantes áreas usam notas de base). Os prompts obrigam a IA a usar títulos existentes.
 - **Script 2 (IIFE de upgrade)**: **envolve** (não reescreve) `processCommand`, `buildSystem`, `speak`, `handleHeard`, `setUser` e `setBot`.
   - **Agenda:** Outlook via `m365.json` + iCal pela antena. Parser ICS próprio (TZID, UTC, dia inteiro, RRULE, EXDATE).
-  - **E-mails:** Outlook via `m365.json` + Gmail por IMAP (senha de app). Triagem AÇÃO/INFO/RUÍDO numa chamada por lote, com cache `jarvis_email_triage`. A mesma chamada extrai factos sobre a FTP Porto.
+  - **E-mails:** Outlook via `m365.json` + Gmail por IMAP (senha de app). Triagem AÇÃO/INFO/RUÍDO numa chamada por lote, com cache `jarvis_email_triage` (no Outlook a triagem já vem feita pela tarefa do Claude).
+  - **Aprender com os e-mails:** `learnFromEmails()` é uma passagem própria, separada da triagem: depois de cada carregamento lê os e-mails ainda não lidos para aprender (`jarvis_mail_learned`), exceto ruído, 25 por pedido, e extrai clientes/negócios, pessoas, FTP Porto, licenciatura e temas recorrentes. Botão "APRENDER COM OS E-MAILS AGORA" no APRENDER. O campo `conhecimento` do `m365.json` (até 15 factos) também entra.
   - **Notícias:** RSS do Google News PT (`hl=pt-PT&gl=PT&ceid=PT:pt-150`), 5 temas.
   - **Morning Digest:** uma chamada por dia, com o tempo em Avanca (Open-Meteo) e um modelo local como alternativa.
   - **APRENDER:**

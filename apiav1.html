@@ -906,13 +906,20 @@ const HUBS = {
 };
 const BASE_IDS = new Set(NOTES.map(n => n.id));
 const HUB_IDS = new Set(Object.values(HUBS).map(h => h.id));
+function titleList() {
+  const t = notes.map(n => n.title);
+  for (const h of Object.values(HUBS)) if (h.title && !notes.some(n => n.id === h.id)) t.push(h.title);
+  return t.join(", ");
+}
 function findHome(area, title, text) {
   const nt = norm(title), words = new Set(norm(title + " " + text).split(" "));
   const exact = notes.find(x => norm(x.title) === nt);
   if (exact) return exact;
+  const hubArea = Object.keys(HUBS).find(k => HUBS[k].title && norm(HUBS[k].title) === nt);
+  if (hubArea) area = hubArea; // "Rede profissional", "Carreira"… vão para a agregadora mesmo que a área venha trocada
   // nota cujo título aparece inteiro no facto (ex.: "FTP Porto", "Vendas", "Sara"); a nota "Paulo" só por título exato
   let best = null, bs = 0;
-  for (const x of notes) {
+  if (!hubArea) for (const x of notes) {
     if (x.id === "paulo") continue;
     const tw = norm(x.title).split(" ").filter(w => w.length >= 3);
     if (!tw.length || !tw.every(w => words.has(w))) continue;
@@ -1880,11 +1887,11 @@ async function aiTriage(chunk) {
     "acao: pede resposta, tarefa, decisão ou tem prazo; alguém está à espera dele. " + (cfg.mail.prioridade || "") + "\n" +
     "info: vale a pena saber mas não exige nada (confirmações, recibos, atualizações).\n" +
     "ruido: promoções, newsletters, notificações automáticas.\n" +
-    (cfg.learn.emails
+    (false
       ? 'Responde APENAS com um objeto JSON: {"emails":[{"i":número,"balde":"acao"|"info"|"ruido","resumo":"uma frase curta em português europeu"}],' +
         '"factos":[{"area":"trabalho|projetos|relacoes|aprendizado|financas|metas|meta","titulo":"1 a 3 palavras","texto":"facto curto em português europeu"}]}. ' +
         'Um item em "emails" por e-mail. Em "factos" (no máximo 5, pode ficar vazio) põe só conhecimento duradouro e claro sobre a FTP Porto e o trabalho do ' + addr +
-        ': produtos e serviços, clientes, parceiros, concorrentes, colegas e funções, processos. No titulo usa SEMPRE um destes títulos de notas (o que melhor encaixa; não inventes títulos novos): ' + notes.map(n => n.title).join(", ") +
+        ': produtos e serviços, clientes, parceiros, concorrentes, colegas e funções, processos. No titulo usa SEMPRE um destes títulos de notas (o que melhor encaixa; não inventes títulos novos): ' + titleList() +
         '. Nada de passwords, dados bancários ou dados pessoais sensíveis. Sem texto extra.'
       : 'Responde APENAS com um array JSON, um item por e-mail: [{"i":número,"balde":"acao"|"info"|"ruido","resumo":"uma frase curta em português europeu"}]. Sem texto extra.');
   const user = JSON.stringify(chunk.map((m, i) => ({ i, de: m.remetente + (m.email ? " <" + m.email + ">" : ""), assunto: m.assunto, trecho: (m.trecho || "").slice(0, 200) })));
@@ -1903,7 +1910,6 @@ async function triageNew(list) {
       const chunk = list.slice(i, i + 30);
       try {
         const res = await aiTriage(chunk);
-        if (cfg.learn.emails) learnFacts(res.factos, "e-mail");
         for (const r of res.emails) {
           const m = chunk[r.i];
           if (m && ["acao", "info", "ruido"].includes(r.balde)) triage[m.id] = { balde: r.balde, resumo: String(r.resumo || m.assunto).slice(0, 220), t: Date.now() };
@@ -1951,6 +1957,7 @@ function loadEmails(force) {
     Object.assign(EM, { lista, erros: errs, offline: off, t: Date.now() });
     renderEmails();
     refreshHeader();
+    if (cfg.learn.emails) setTimeout(() => learnFromEmails(false).catch(e => console.warn("Aprender com e-mails falhou", e)), 3000);
   })().finally(() => { emailsP = null; });
   return emailsP;
 }
@@ -2349,8 +2356,9 @@ function msPrompt() {
     "4. Grava o ficheiro m365.json na pasta C:\\A.P.IAv1 (substitui o anterior), só com JSON válido e sem texto à volta, neste formato:\n" +
     '{"atualizado":"<agora, ISO 8601 com fuso>","conta":"<o meu e-mail>","emails":[{"id":"<internetMessageId>","remetente":"<nome>","email":"<endereço>","assunto":"...","data":"<ISO 8601>","trecho":"<até 300 caracteres do início do corpo>","lido":true,"balde":"acao","resumo":"..."}],' +
     '"eventos":[{"titulo":"...","inicio":"<ISO 8601 com fuso>","fim":"<ISO 8601 com fuso>","diaTodo":false,"local":"..."}]}\n' +
-    "5. Acrescenta ao JSON o campo \"conhecimento\": até 5 factos duradouros e claros sobre a FTP Porto e o meu trabalho que aprendeste nesses e-mails (produtos e serviços, clientes, parceiros, concorrentes, colegas e funções, processos), " +
-    'no formato [{"area":"trabalho","titulo":"1 a 3 palavras","texto":"facto curto"}]. Nada de passwords, dados bancários ou dados pessoais sensíveis.\n' +
+    "5. Acrescenta ao JSON o campo \"conhecimento\": até 15 factos duradouros que aprendeste nesses e-mails sobre mim e o meu trabalho: clientes e negócios em curso (empresa, o que está em discussão, fase, valores e prazos), " +
+    "pessoas com quem trabalho (nome, empresa, função, assunto), produtos e serviços da FTP Porto, parceiros e concorrentes, projetos, processos internos, temas que se repetem, e a minha licenciatura. " +
+    'Formato [{"area":"trabalho|projetos|relacoes|aprendizado|financas|metas","titulo":"FTP Porto|Negócios|Rede profissional|Carreira|Formação|…","texto":"facto curto e concreto"}]. Nada de passwords, dados bancários ou dados pessoais sensíveis.\n' +
     "Regras: não envies, respondas, movas, apagues nem marques como lido nenhum e-mail; não alteres o calendário; não cries nem alteres outros ficheiros.";
 }
 function openCfg() {
@@ -2552,7 +2560,7 @@ async function learnFromText(text, fonte) {
   if (text.length < 20) throw new Error("Não encontrei texto suficiente para aprender.");
   const sys = "Extrais conhecimento duradouro sobre o " + addr + " (António Paulo, Diretor Comercial na FTP Porto) a partir de dados que ele próprio te deu (fonte: " + fonte + ").\n" +
     'Devolve APENAS um array JSON, no máximo 20 itens: [{"area":"meta|metas|trabalho|projetos|financas|aprendizado|saude|relacoes","titulo":"1 a 3 palavras","texto":"um facto curto em português europeu"}].\n' +
-    "No campo titulo usa SEMPRE um destes títulos de notas (escolhe o que melhor encaixa; não inventes títulos novos): " + notes.map(n => n.title).join(", ") + ".\n" +
+    "No campo titulo usa SEMPRE um destes títulos de notas (escolhe o que melhor encaixa; não inventes títulos novos): " + titleList() + ".\n" +
     "Prefere factos úteis para um assistente pessoal: percurso profissional, empresas e cargos, competências, formação, línguas, interesses, rede profissional, objetivos, e o que se sabe da FTP Porto. " +
     "Não incluas dados sensíveis (saúde, religião, política, dados bancários) nem dados de terceiros além do nome e da relação. Não inventes nada.";
   let total = 0;
@@ -2561,6 +2569,46 @@ async function learnFromText(text, fonte) {
     total += learnFacts(Array.isArray(j) ? j : (j.factos || []), fonte);
   }
   return total;
+}
+// Aprender com os e-mails: passagem própria (independente da triagem, que no Outlook já vem feita pelo Claude).
+// Só e-mails ainda não lidos para aprender e que não sejam ruído; um pedido por 25 e-mails.
+const ML_KEY = "jarvis_mail_learned";
+let mailLearned = jget(ML_KEY, {}), mailLearnP = null;
+async function learnFromEmails(manual) {
+  if (mailLearnP) return mailLearnP;
+  mailLearnP = (async () => {
+    if (!getKey()) throw new Error("Preciso da chave da API (Gemini ou Claude) para aprender com os e-mails.");
+    if (manual && (!EM.t || Date.now() - EM.t > 5 * 60000)) await loadEmails(true);
+    const todo = EM.lista.filter(m => m.balde !== "ruido" && !mailLearned[m.id]);
+    if (!todo.length) return 0;
+    const sys = "Lês e-mails do " + addr + " (António Paulo, Diretor Comercial na FTP Porto, empresa que vende software a empresas industriais; também estudante de licenciatura) e extrais o que um assistente pessoal deve saber para o ajudar no dia a dia.\n" +
+      "Procura sobretudo:\n" +
+      "- Clientes e negócios em curso: empresa, o que está em discussão (proposta, demonstração, implementação, renovação, problema), fase, valores e prazos → titulo \"Negócios\".\n" +
+      "- Pessoas: nome, empresa, função e o assunto que tratam com ele → titulo \"Rede profissional\" (ou o nome, se já for uma nota).\n" +
+      "- FTP Porto: produtos e módulos, serviços, parceiros, concorrentes, colegas e funções, processos internos → titulo \"FTP Porto\".\n" +
+      "- Licenciatura e formação (cadeiras, trabalhos, prazos) → a nota da cadeira ou \"Formação\".\n" +
+      "- Temas que se repetem em vários e-mails: diz qual é o tema e porque importa.\n" +
+      "No campo titulo usa SEMPRE um destes títulos de notas (o que melhor encaixa; não inventes títulos novos): " + titleList() + ".\n" +
+      'Devolve APENAS um array JSON, no máximo 12 itens: [{"area":"trabalho|projetos|relacoes|aprendizado|financas|metas|meta","titulo":"...","texto":"facto curto e concreto em português europeu, com nomes, empresas e datas"}].\n' +
+      "Ignora publicidade, notificações automáticas e o que não for útil daqui a uma semana. Nada de passwords, dados bancários ou dados pessoais sensíveis. Não inventes nada.";
+    let total = 0, err = null;
+    for (let i = 0; i < todo.length && i < (manual ? 100 : 50); i += 25) {
+      const chunk = todo.slice(i, i + 25);
+      const user = chunk.map(m => "De: " + m.remetente + (m.email ? " <" + m.email + ">" : "") + (m.data ? " · " + new Date(m.data).toLocaleDateString("pt-PT") : "") +
+        "\nAssunto: " + m.assunto + "\n" + (m.resumo && m.resumo !== m.assunto ? "Resumo: " + m.resumo + "\n" : "") + (m.trecho || "").slice(0, 400)).join("\n\n---\n\n");
+      try {
+        const j = parseJsonLoose(await llmOnce(sys, user, 2000, true));
+        total += learnFacts(Array.isArray(j) ? j : (j.factos || []), "e-mail");
+        for (const m of chunk) mailLearned[m.id] = Date.now();
+      } catch (e) { err = e; break; }
+    }
+    const ids = Object.keys(mailLearned);
+    if (ids.length > 1500) ids.sort((a, b) => mailLearned[a] - mailLearned[b]).slice(0, ids.length - 1500).forEach(k => delete mailLearned[k]);
+    jset(ML_KEY, mailLearned);
+    if (err && !total) throw err;
+    return total;
+  })().finally(() => { mailLearnP = null; if (hasEl("p-aprender")) renderLearn(); });
+  return mailLearnP;
 }
 // Leitor de ZIP mínimo (sem bibliotecas): DecompressionStream nativo do browser
 async function unzip(file, want) {
@@ -2715,7 +2763,9 @@ function renderLearn() {
       '<textarea id="pasteTx" placeholder="Cola aqui o texto (ex.: a secção Acerca e Experiência do teu LinkedIn, ou a página da FTP Porto)."></textarea>' +
       '<button class="btn" id="pasteGo" type="button">APRENDER</button></div>' +
     "</div>" +
-    '<label class="chk"><input type="checkbox" id="learnMail"' + (cfg.learn.emails ? " checked" : "") + "> Aprender com os e-mails sobre a FTP Porto e o meu trabalho (sem custo extra: vem na mesma triagem)</label>" +
+    '<div class="lrow"><label class="chk" style="margin:0"><input type="checkbox" id="learnMail"' + (cfg.learn.emails ? " checked" : "") + "> Aprender sozinha com os e-mails novos (clientes, negócios, pessoas, FTP Porto, licenciatura)</label>" +
+      '<button class="btn" id="mailLearnGo" type="button">APRENDER COM OS E-MAILS AGORA</button>' +
+      '<span class="meta">' + plural(Object.keys(mailLearned).length, "E-MAIL LIDO", "E-MAILS LIDOS") + " · " + plural(facts.filter(x => /e-mail|outlook/i.test(x.f.fonte)).length, "FACTO", "FACTOS") + " DOS E-MAILS</span></div>" +
     '<div class="warn">Os ficheiros são lidos neste PC. Só o texto relevante vai para a IA (Gemini ou Claude) para extrair factos; nada é publicado. As mensagens privadas do Facebook nunca são lidas.</div>' +
     '<div class="lrow"><button class="btn" id="brainTidy" type="button">ORGANIZAR E RESUMIR</button><span class="meta">Junta notas soltas nas notas certas e resume as que têm muitos factos.</span></div>' +
     '<div id="learnStatus"></div>' +
@@ -2731,6 +2781,7 @@ function renderLearn() {
     runLearn(async () => { const n = await learnFromText(tx, FONTES[src]); const t = hasEl("pasteTx"); if (t) t.value = ""; return n; }, src === "site" ? "esse texto" : "o texto colado");
   };
   $("#brainTidy").onclick = () => tidyBrain(true);
+  $("#mailLearnGo").onclick = () => runLearn(() => learnFromEmails(true), "os e-mails");
   $("#learnMail").onchange = e => { cfg.learn.emails = e.target.checked; jset("jarvis_learn_cfg", cfg.learn); };
   p.querySelectorAll(".lnk").forEach(el => el.onclick = () => openEditor(el.dataset.id));
   p.querySelectorAll(".fact .del").forEach(b => b.onclick = () => {
