@@ -1,0 +1,23 @@
+{
+ "name": "A.P.IAv1 — assistente pessoal do Paulo",
+ "short_name": "A.P.IAv1",
+ "start_url": "/apiav1.html",
+ "scope": "/",
+ "display": "standalone",
+ "background_color": "#03070d",
+ "theme_color": "#03070d",
+ "lang": "pt-PT",
+ "icons": [
+  {
+   "src": "apiav1-192.png",
+   "sizes": "192x192",
+   "type": "image/png"
+  },
+  {
+   "src": "apiav1-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any"
+  }
+ ]
+}
