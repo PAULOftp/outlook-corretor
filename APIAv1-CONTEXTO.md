@@ -22,7 +22,8 @@ O assistente chama-se **A.P.IAv1** e é chamado em voz alta com **"Olá IA"**. �
 | `criar-atalho.vbs` | Cria o atalho "A.P.IAv1" (com ícone) no Ambiente de Trabalho e no menu Iniciar. |
 | `apiav1.webmanifest`, `apiav1-192/512.png`, `apiav1.ico` | Manifesto e ícones da aplicação (instalável no Edge). |
 | `apiav1-avatar.jpg` | Fotografia da agente (1000×1300). A página usa a cópia embutida. |
-| Fora do git (`.gitignore`) | `*.txt` (chave da API, ex. `cheveapi.txt`), `m365.json`, `antena_tokens.json`. |
+| `skills/contexto-paulo/SKILL.md` | Skill do Claude gerada pela página a partir do Second Brain (a antena grava-a via `POST /api/skill`). Fora do git, porque tem dados pessoais. |
+| Fora do git (`.gitignore`) | `*.txt` (chave da API, ex. `cheveapi.txt`), `m365.json`, `antena_tokens.json`, `skills/`. |
 
 ## Arquitetura da página (`apiav1.html`)
 - **Script 1 (Parte 1, "Jarvis")**:
@@ -31,6 +32,7 @@ O assistente chama-se **A.P.IAv1** e é chamado em voz alta com **"Olá IA"**. �
   - Cérebro: `ask` → `callGemini`/`callClaude`. O fornecedor é detetado pela chave: `AIza…` = Gemini, `sk-ant-…` = Claude.
   - Second Brain: grafo SVG injetado via `innerHTML` de uma DIV. Memória viva com `[[SAVE:area|titulo|texto]]`.
   - Notas: `{id, area, title, body (manual), auto: [{t, fonte, d}] (aprendizagem automática)}`. O editor tem dois separadores.
+  - **Sem notas soltas:** `placeFact`/`findHome` encaixam cada facto na nota com o título exato, numa nota cujo título aparece no facto, ou numa nota-agregadora fixa por área (`HUBS`: Carreira, Formação, Rede profissional, Saúde; as restantes áreas usam notas de base). Os prompts obrigam a IA a usar títulos existentes.
 - **Script 2 (IIFE de upgrade)**: **envolve** (não reescreve) `processCommand`, `buildSystem`, `speak`, `handleHeard`, `setUser` e `setBot`.
   - **Agenda:** Outlook via `m365.json` + iCal pela antena. Parser ICS próprio (TZID, UTC, dia inteiro, RRULE, EXDATE).
   - **E-mails:** Outlook via `m365.json` + Gmail por IMAP (senha de app). Triagem AÇÃO/INFO/RUÍDO numa chamada por lote, com cache `jarvis_email_triage`. A mesma chamada extrai factos sobre a FTP Porto.
@@ -41,6 +43,8 @@ O assistente chama-se **A.P.IAv1** e é chamado em voz alta com **"Olá IA"**. �
     - ZIP do Facebook: HTML ou JSON, só perfil, publicações, páginas e grupos; nunca mensagens.
     - Texto colado.
     - Leitor de ZIP nativo (`DecompressionStream`).
+  - **Arrumar o cérebro:** `consolidateBrain()` desfaz as notas criadas pela aprendizagem antiga (fora das de base/hubs e sem conteúdo manual) e recoloca os factos; corre uma vez (flag `jarvis_brain_v2`) e no botão ORGANIZAR E RESUMIR. `tidyBrain` resume por IA as notas com mais de 12 factos (para 8 no máximo, fonte `resumo · …`), automaticamente 20 s depois de aprender.
+  - **SKILL:** `buildSkillMd()` gera `contexto-paulo/SKILL.md` (frontmatter + como trabalhar com o Paulo + notas por área com factos e fontes). `saveNotes` está envolvida e grava pela antena 4 s depois de cada alteração. Separador SKILL: pré-visualização, COPIAR, ⬇ .md, ⬇ ZIP (escritor ZIP "store" próprio, pronto a carregar no Claude).
   - **Música:** "põe música de X" → `/api/youtube` (pesquisa sem chave) → leitor `youtube-nocookie` embutido. Baixa o volume quando ela fala e, com música a tocar, só reage à wake word.
   - **Voz:**
     - Motor "Automático": voz Natural do Edge (Raquel pt-PT) se existir; senão Gemini TTS (voz Kore, PCM com Web Audio, a 1.ª frase em paralelo); senão a voz do browser.

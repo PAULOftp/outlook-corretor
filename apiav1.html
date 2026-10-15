@@ -155,7 +155,7 @@ body.speaking .orb .core{animation:pulse 1.6s ease-in-out infinite}
 .mpanel.on{display:block;animation:rise .45s ease both}
 @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 .mhead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap}
-.mhead .meta{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.08em}
+.mhead .meta,.lrow .meta{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.08em}
 .mhead .icon-btn{width:30px;height:30px}
 .mhead .icon-btn svg{width:15px;height:15px}
 .notice{border:1px dashed rgba(255,85,71,.45);color:#ffb4ad;border-radius:6px;padding:10px 12px;font-family:var(--mono);font-size:12px;letter-spacing:.06em;margin:6px 0}
@@ -301,6 +301,11 @@ body.idle .hud #status:not(.err){color:#ff8a7a}
 .lcard select{padding:6px;font-size:13px}
 #learnStatus{font-family:var(--mono);font-size:12px;color:var(--theme);min-height:1.4em;margin:4px 0 10px}
 #learnStatus.err{color:var(--err)}
+.skhead{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.skhead .path{font-family:var(--mono);font-size:12px;color:var(--muted);flex:1 1 260px;word-break:break-all}
+.skhead .path b{color:var(--theme);font-weight:400}
+#skillPre{max-height:420px;overflow:auto;white-space:pre-wrap;font-family:var(--mono);font-size:12px;line-height:1.5;color:var(--text);background:rgba(0,200,255,.03);border:1px solid var(--line);border-radius:8px;padding:12px;margin:10px 0 0}
+.lrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px}
 
 /* ================= Rosto de partículas + música ================= */
 #faceCv{position:absolute;left:-40px;top:-40px;width:calc(100% + 80px);height:calc(100% + 80px);cursor:pointer;display:none}
@@ -432,6 +437,7 @@ body.photo.speaking #photoCv{box-shadow:0 0 0 1px rgba(0,200,255,.35),0 0 26px r
       <button class="tab" data-tab="noticias" type="button">NOTÍCIAS</button>
       <button class="tab" data-tab="digest" type="button">DIGEST</button>
       <button class="tab" data-tab="aprender" type="button">APRENDER</button>
+      <button class="tab" data-tab="skill" type="button">SKILL</button>
       <span class="spacer"></span>
       <button class="tbtn" id="digestBtn" type="button">☀ DIGEST</button>
     </div>
@@ -440,6 +446,7 @@ body.photo.speaking #photoCv{box-shadow:0 0 0 1px rgba(0,200,255,.35),0 0 26px r
     <div class="mpanel" id="p-noticias"></div>
     <div class="mpanel" id="p-digest"></div>
     <div class="mpanel" id="p-aprender"></div>
+    <div class="mpanel" id="p-skill"></div>
   </section>
 
   <section class="brain">
@@ -777,7 +784,7 @@ function buildSystem() {
     "SECOND BRAIN DO " + CONFIG.address.toUpperCase() + " (o que sabes sobre a vida dele; usa-o para personalizar as respostas, sem o recitar):" + brain,
     "PROTOCOLO DE MEMÓRIA VIVA: se o utilizador revelar algo novo e duradouro sobre a vida dele, TERMINA a resposta com uma linha no formato EXATO " +
     "[[SAVE:area|titulo|texto]] (area ∈ metas, trabalho, projetos, financas, aprendizado, saude, relacoes, meta; titulo com 1 a 2 palavras). " +
-    "Reutiliza o título de uma nota existente sempre que o facto encaixar nela (o facto é acrescentado à aprendizagem automática dessa nota); senão nasce uma nota nova. " +
+    "No titulo usa SEMPRE o título de uma nota existente do Second Brain (o facto é acrescentado à aprendizagem automática dessa nota); não inventes notas novas. " +
     "Inclui só quando houver algo realmente novo. Nunca menciones esta linha na parte falada."
   ].join("\n\n");
 }
@@ -890,19 +897,48 @@ function makeId(title) {
   return (norm(title).replace(/ /g, "-") || "nota") + "-" + Date.now().toString(36);
 }
 // Aprendizagem automática: factos com fonte e data, guardados à parte do conteúdo manual (body)
-function addFact(area, title, text, fonte) {
+// A aprendizagem automática não espalha notas novas: cada facto vai para a nota que melhor encaixa
+// ou, se nenhuma servir, para uma pequena nota-agregadora fixa por área.
+const HUBS = {
+  meta: { id: "paulo" }, metas: { id: "consultor" }, projetos: { id: "negocios" }, financas: { id: "independencia" },
+  trabalho: { id: "carreira", title: "Carreira" }, aprendizado: { id: "formacao", title: "Formação" },
+  relacoes: { id: "rede", title: "Rede profissional" }, saude: { id: "saude-geral", title: "Saúde" }
+};
+const BASE_IDS = new Set(NOTES.map(n => n.id));
+const HUB_IDS = new Set(Object.values(HUBS).map(h => h.id));
+function findHome(area, title, text) {
+  const nt = norm(title), words = new Set(norm(title + " " + text).split(" "));
+  const exact = notes.find(x => norm(x.title) === nt);
+  if (exact) return exact;
+  // nota cujo título aparece inteiro no facto (ex.: "FTP Porto", "Vendas", "Sara"); a nota "Paulo" só por título exato
+  let best = null, bs = 0;
+  for (const x of notes) {
+    if (x.id === "paulo") continue;
+    const tw = norm(x.title).split(" ").filter(w => w.length >= 3);
+    if (!tw.length || !tw.every(w => words.has(w))) continue;
+    const sc = tw.length + (x.area === area ? 0.5 : 0);
+    if (sc > bs) { bs = sc; best = x; }
+  }
+  if (best) return best;
+  const h = HUBS[area] || HUBS.meta;
+  let hub = notes.find(x => x.id === h.id);
+  if (!hub && h.title) { hub = { id: h.id, area, title: h.title, body: "", auto: [] }; notes.push(hub); }
+  return hub || notes.find(x => x.area === area) || notes[0];
+}
+function placeFact(area, title, text, fonte, d) {
   if (!AREA[area]) area = "meta";
-  title = String(title || "").trim().slice(0, 40);
+  title = String(title || "").trim().slice(0, 60);
   text = String(text || "").trim().slice(0, 300);
   if (!title || !text) return null;
-  let n = notes.find(x => norm(x.title) === norm(title));
-  if (!n) { n = { id: makeId(title), area, title, body: "", auto: [] }; notes.push(n); }
+  const n = findHome(area, title, text);
+  if (norm(n.title) !== norm(title) && !norm(text).includes(norm(title))) text = (title + ": " + text).slice(0, 360); // não perde o tema original
   n.auto = n.auto || [];
   if (n.auto.some(f => norm(f.t) === norm(text)) || norm(n.body).includes(norm(text))) return null;
-  n.auto.push({ t: text, fonte: fonte || "conversa", d: Date.now() });
-  if (n.auto.length > 15) n.auto.splice(0, n.auto.length - 15);
+  n.auto.push({ t: text, fonte: fonte || "conversa", d: d || Date.now() });
+  if (n.auto.length > 30) n.auto.splice(0, n.auto.length - 30);
   return n.id;
 }
+function addFact(area, title, text, fonte) { return placeFact(area, title, text, fonte); }
 function upsertNote(area, title, body) { return addFact(area, title, body, "conversa"); }
 function noteText(n) {
   const auto = (n.auto || []).slice(-6).map(f => f.t).join("; ");
@@ -1486,7 +1522,7 @@ async function antJson(path, opts) {
   if (!r.ok) throw new Error(j.erro || ("erro " + r.status));
   return j;
 }
-const ANT_VERSION = 3;
+const ANT_VERSION = 4;
 async function ping() {
   try {
     const j = await antJson("/api/ping", { timeout: 5000 });
@@ -1848,7 +1884,7 @@ async function aiTriage(chunk) {
       ? 'Responde APENAS com um objeto JSON: {"emails":[{"i":número,"balde":"acao"|"info"|"ruido","resumo":"uma frase curta em português europeu"}],' +
         '"factos":[{"area":"trabalho|projetos|relacoes|aprendizado|financas|metas|meta","titulo":"1 a 3 palavras","texto":"facto curto em português europeu"}]}. ' +
         'Um item em "emails" por e-mail. Em "factos" (no máximo 5, pode ficar vazio) põe só conhecimento duradouro e claro sobre a FTP Porto e o trabalho do ' + addr +
-        ': produtos e serviços, clientes, parceiros, concorrentes, colegas e funções, processos. Reutiliza estes títulos quando o facto encaixar: ' + notes.map(n => n.title).join(", ") +
+        ': produtos e serviços, clientes, parceiros, concorrentes, colegas e funções, processos. No titulo usa SEMPRE um destes títulos de notas (o que melhor encaixa; não inventes títulos novos): ' + notes.map(n => n.title).join(", ") +
         '. Nada de passwords, dados bancários ou dados pessoais sensíveis. Sem texto extra.'
       : 'Responde APENAS com um array JSON, um item por e-mail: [{"i":número,"balde":"acao"|"info"|"ruido","resumo":"uma frase curta em português europeu"}]. Sem texto extra.');
   const user = JSON.stringify(chunk.map((m, i) => ({ i, de: m.remetente + (m.email ? " <" + m.email + ">" : ""), assunto: m.assunto, trecho: (m.trecho || "").slice(0, 200) })));
@@ -2262,6 +2298,7 @@ function switchTab(name) {
   document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.dataset.tab === name));
   document.querySelectorAll(".mpanel").forEach(p => p.classList.toggle("on", p.id === "p-" + name));
   LS.set("jarvis_tab", name);
+  if (name === "skill") renderSkill();
   if (name === "agenda" && (!AG.t || Date.now() - AG.t > 10 * 60000)) loadAgenda();
 }
 document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => switchTab(t.dataset.tab)));
@@ -2505,6 +2542,7 @@ function learnFacts(list, fonte) {
     renderGraph();
     [...new Set(ids)].forEach(flashNode);
     if (hasEl("p-aprender")) renderLearn();
+    if (notes.some(n => (n.auto || []).length > SUM_AT)) scheduleSummary();
   }
   return ids.length;
 }
@@ -2514,7 +2552,7 @@ async function learnFromText(text, fonte) {
   if (text.length < 20) throw new Error("Não encontrei texto suficiente para aprender.");
   const sys = "Extrais conhecimento duradouro sobre o " + addr + " (António Paulo, Diretor Comercial na FTP Porto) a partir de dados que ele próprio te deu (fonte: " + fonte + ").\n" +
     'Devolve APENAS um array JSON, no máximo 20 itens: [{"area":"meta|metas|trabalho|projetos|financas|aprendizado|saude|relacoes","titulo":"1 a 3 palavras","texto":"um facto curto em português europeu"}].\n' +
-    "Reutiliza estes títulos de notas quando o facto encaixar: " + notes.map(n => n.title).join(", ") + ".\n" +
+    "No campo titulo usa SEMPRE um destes títulos de notas (escolhe o que melhor encaixa; não inventes títulos novos): " + notes.map(n => n.title).join(", ") + ".\n" +
     "Prefere factos úteis para um assistente pessoal: percurso profissional, empresas e cargos, competências, formação, línguas, interesses, rede profissional, objetivos, e o que se sabe da FTP Porto. " +
     "Não incluas dados sensíveis (saúde, religião, política, dados bancários) nem dados de terceiros além do nome e da relação. Não inventes nada.";
   let total = 0;
@@ -2679,6 +2717,7 @@ function renderLearn() {
     "</div>" +
     '<label class="chk"><input type="checkbox" id="learnMail"' + (cfg.learn.emails ? " checked" : "") + "> Aprender com os e-mails sobre a FTP Porto e o meu trabalho (sem custo extra: vem na mesma triagem)</label>" +
     '<div class="warn">Os ficheiros são lidos neste PC. Só o texto relevante vai para a IA (Gemini ou Claude) para extrair factos; nada é publicado. As mensagens privadas do Facebook nunca são lidas.</div>' +
+    '<div class="lrow"><button class="btn" id="brainTidy" type="button">ORGANIZAR E RESUMIR</button><span class="meta">Junta notas soltas nas notas certas e resume as que têm muitos factos.</span></div>' +
     '<div id="learnStatus"></div>' +
     '<div class="autolist" style="max-height:none">' + (facts.length ? facts.slice(0, 60).map((x, i) =>
       '<div class="fact"><span class="src">' + esc(String(x.f.fonte).toUpperCase()) + " · " + esc(new Date(x.f.d).toLocaleDateString("pt-PT")) + '</span>' +
@@ -2691,6 +2730,7 @@ function renderLearn() {
     const src = $("#pasteSrc").value, tx = $("#pasteTx").value;
     runLearn(async () => { const n = await learnFromText(tx, FONTES[src]); const t = hasEl("pasteTx"); if (t) t.value = ""; return n; }, src === "site" ? "esse texto" : "o texto colado");
   };
+  $("#brainTidy").onclick = () => tidyBrain(true);
   $("#learnMail").onchange = e => { cfg.learn.emails = e.target.checked; jset("jarvis_learn_cfg", cfg.learn); };
   p.querySelectorAll(".lnk").forEach(el => el.onclick = () => openEditor(el.dataset.id));
   p.querySelectorAll(".fact .del").forEach(b => b.onclick = () => {
@@ -2702,6 +2742,169 @@ function renderLearn() {
 // o editor de notas também mexe nos factos: refresca a lista ao guardar
 $("#fSave").addEventListener("click", () => setTimeout(renderLearn, 0));
 $("#fDelete").addEventListener("click", () => setTimeout(renderLearn, 0));
+
+/* =====================================================================
+   SECOND BRAIN ARRUMADO: sem notas soltas, factos resumidos
+   ===================================================================== */
+const SUM_AT = 12;   // a partir de quantos factos automáticos uma nota é resumida
+const SUM_TO = 8;    // máximo de factos depois do resumo
+// Notas criadas pela aprendizagem antiga (sem conteúdo manual e fora das notas de base) são desfeitas
+// e os factos voltam a ser arrumados nas notas certas.
+function consolidateBrain() {
+  const loose = notes.filter(n => !BASE_IDS.has(n.id) && !HUB_IDS.has(n.id) && !String(n.body || "").trim());
+  if (!loose.length) return 0;
+  notes = notes.filter(n => !loose.includes(n));
+  for (const n of loose) for (const f of n.auto || []) placeFact(n.area, n.title, f.t, f.fonte, f.d);
+  return loose.length;
+}
+async function summarizeNote(n, limit) {
+  const facts = (n.auto || []).map(f => f.t);
+  const sys = "Resumes o que um assistente pessoal sabe sobre o " + addr + " na nota \"" + n.title + "\" (" + (AREA[n.area] || AREA.meta).label + ").\n" +
+    "Junta repetidos, funde factos relacionados e mantém nomes, números e datas. Português europeu, frases curtas.\n" +
+    "Devolve APENAS um array JSON de no máximo " + limit + " strings (um facto por string). Não inventes nada." +
+    (n.body ? "\nNão repitas o que já está no conteúdo manual: " + n.body : "");
+  const j = parseJsonLoose(await llmOnce(sys, facts.map(t => "- " + t).join("\n"), 900, true));
+  const out = (Array.isArray(j) ? j : (j.factos || j.resumo || [])).map(x => String(typeof x === "string" ? x : (x && (x.texto || x.t)) || "").trim()).filter(Boolean).slice(0, limit);
+  if (!out.length) throw new Error("resumo vazio");
+  const fontes = [...new Set((n.auto || []).map(f => String(f.fonte || "").replace(/^resumo · /, "")).join(", ").split(", ").filter(Boolean))].join(", ");
+  const d = Date.now();
+  n.auto = out.map(t => ({ t: t.slice(0, 360), fonte: "resumo · " + (fontes || "vários"), d }));
+}
+let tidyRunning = false, sumTimer = 0;
+async function tidyBrain(manual) {
+  if (tidyRunning) return;
+  tidyRunning = true;
+  try {
+    const merged = consolidateBrain();
+    if (merged) { saveNotes(); renderGraph(); }
+    const heavy = notes.filter(n => (n.auto || []).length > (manual ? SUM_TO : SUM_AT));
+    let done = 0, err = "";
+    if (heavy.length && getKey()) {
+      if (manual) setLearnStatus("A resumir " + plural(heavy.length, "nota", "notas") + "…");
+      for (const n of heavy) {
+        try { await summarizeNote(n, SUM_TO); done++; saveNotes(); }
+        catch (e) { err = friendlyAiError(e); if (/quota|chave/i.test(err)) break; }
+      }
+      if (done) renderGraph();
+    }
+    if (hasEl("p-aprender")) renderLearn();
+    if (manual) {
+      const msg = (merged ? "Juntei " + plural(merged, "nota solta", "notas soltas") + " às notas certas. " : "") +
+        (done ? "Resumi " + plural(done, "nota", "notas") + "." : heavy.length ? "" : "Nada para resumir.");
+      setLearnStatus((msg.trim() || "O cérebro já estava arrumado.") + (err ? " " + err : ""), !!err && !done);
+    }
+  } finally { tidyRunning = false; }
+}
+function scheduleSummary() { clearTimeout(sumTimer); sumTimer = setTimeout(() => tidyBrain(false), 20000); }
+// Migração única: arruma as notas soltas que a aprendizagem antiga criou
+if (!LS.get("jarvis_brain_v2")) {
+  if (consolidateBrain()) { saveNotes(); renderGraph(); }
+  LS.set("jarvis_brain_v2", "1");
+}
+
+/* =====================================================================
+   SKILL.md: o Second Brain escrito como skill do Claude (pasta skills\contexto-paulo)
+   ===================================================================== */
+const SKILL_NAME = "contexto-paulo";
+const SK = { ok: null, msg: "Ainda não gravado.", caminho: "", t: 0, last: "" };
+const oneLine = s => String(s || "").replace(/\s+/g, " ").trim();
+function buildSkillMd() {
+  const fmt = d => { try { return new Date(d).toLocaleDateString("pt-PT"); } catch (e) { return ""; } };
+  const L = [
+    "---",
+    "name: " + SKILL_NAME,
+    "description: Contexto pessoal e profissional do António Paulo (Paulo), Diretor Comercial na FTP Porto (software para empresas industriais), estudante de licenciatura e futuro consultor e formador. Usa esta skill sempre que ajudares o Paulo em vendas, clientes e negócios da FTP Porto, estudos, carreira, finanças pessoais ou família, ou quando precisares de saber quem ele é, o que quer e com quem trabalha.",
+    "---",
+    "",
+    "# Contexto do Paulo",
+    "",
+    "> Gerado automaticamente pela A.P.IAv1 a partir do Second Brain em " + new Date().toLocaleString("pt-PT") + ". Não edites à mão: o ficheiro é reescrito sempre que o cérebro muda.",
+    "",
+    "## Como trabalhar com o Paulo",
+    "- Responde em português europeu (nunca pt-BR), num tom direto e colegial, sem preâmbulos nem elogios.",
+    "- Assume nível avançado: nada de básicos de vendas ou de liderança.",
+    "- Trata-o por tu e por \"Paulo\".",
+    "- Usa os factos abaixo como contexto; se um facto parecer desatualizado, confirma com ele antes de agir.",
+    ""
+  ];
+  for (const [area, a] of Object.entries(AREA)) {
+    const list = notes.filter(n => n.area === area && (oneLine(n.body) || (n.auto || []).length));
+    if (!list.length) continue;
+    L.push("## " + a.label, "");
+    for (const n of list) {
+      L.push("### " + oneLine(n.title));
+      if (oneLine(n.body)) L.push(oneLine(n.body));
+      for (const f of n.auto || []) L.push("- " + oneLine(f.t) + " _(" + oneLine(f.fonte || "conversa") + ", " + fmt(f.d) + ")_");
+      L.push("");
+    }
+  }
+  return L.join("\n").replace(/\n{3,}/g, "\n\n").trim() + "\n";
+}
+const skillCore = md => md.replace(/^> Gerado automaticamente[^\n]*\n/m, "");
+async function writeSkill(force) {
+  const md = buildSkillMd();
+  if (!force && SK.ok && skillCore(md) === SK.last) return;
+  try {
+    const j = await antJson("/api/skill", { method: "POST", timeout: 15000, headers: { "content-type": "application/json" }, body: JSON.stringify({ conteudo: md }) });
+    Object.assign(SK, { ok: true, caminho: j.caminho || "", t: Date.now(), last: skillCore(md), msg: "Gravado às " + new Date().toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" }) + "." });
+  } catch (e) {
+    Object.assign(SK, { ok: false, msg: e instanceof AntOff ? "A antena está desligada: usa ⬇ .md ou ⬇ ZIP." : /Rota desconhecida/.test(e.message) ? "A antena está desatualizada: fecha a A.P.IAv1 e abre pelo atalho." : "Não consegui gravar (" + e.message + ")." });
+  }
+  if (hasEl("p-skill")) renderSkill();
+}
+let skillTimer = 0;
+function scheduleSkill() { clearTimeout(skillTimer); skillTimer = setTimeout(() => writeSkill(false), 4000); }
+const _saveNotes = saveNotes;
+saveNotes = function () { _saveNotes(); scheduleSkill(); };
+
+// ZIP sem compressão ("store"), com a pasta da skill, pronto a carregar no Claude
+const CRC_T = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(b) { let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = CRC_T[(c ^ b[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+function zipStore(files) {
+  const enc = new TextEncoder(), parts = [], central = [], now = new Date();
+  const dDate = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+  const dTime = (now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1);
+  let off = 0;
+  for (const f of files) {
+    const nm = enc.encode(f.name), data = typeof f.data === "string" ? enc.encode(f.data) : f.data, crc = crc32(data), sz = data.length;
+    const h = new DataView(new ArrayBuffer(30));
+    h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(8, 0, true);
+    h.setUint16(10, dTime, true); h.setUint16(12, dDate, true); h.setUint32(14, crc, true); h.setUint32(18, sz, true); h.setUint32(22, sz, true);
+    h.setUint16(26, nm.length, true); h.setUint16(28, 0, true);
+    parts.push(new Uint8Array(h.buffer), nm, data);
+    const c = new DataView(new ArrayBuffer(46));
+    c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true); c.setUint16(10, 0, true);
+    c.setUint16(12, dTime, true); c.setUint16(14, dDate, true); c.setUint32(16, crc, true); c.setUint32(20, sz, true); c.setUint32(24, sz, true);
+    c.setUint16(28, nm.length, true); c.setUint32(42, off, true);
+    central.push(new Uint8Array(c.buffer), nm);
+    off += 30 + nm.length + sz;
+  }
+  const csz = central.reduce((a, b) => a + b.length, 0), e = new DataView(new ArrayBuffer(22));
+  e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, csz, true); e.setUint32(16, off, true);
+  return new Blob([...parts, ...central, new Uint8Array(e.buffer)], { type: "application/zip" });
+}
+function dlBlob(blob, name) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+function renderSkill() {
+  const p = hasEl("p-skill");
+  if (!p) return;
+  const md = buildSkillMd(), nFacts = notes.reduce((a, n) => a + (n.auto || []).length, 0);
+  p.innerHTML = '<div class="mhead"><span class="meta">SKILL.md · ' + plural(notes.length, "NOTA", "NOTAS") + " · " + plural(nFacts, "FACTO", "FACTOS") + " · " + Math.round(new Blob([md]).size / 1024 * 10) / 10 + " KB</span></div>" +
+    '<div class="skhead"><span class="path">Pasta: <b>' + esc(SK.caminho || "C:\\A.P.IAv1\\skills\\" + SKILL_NAME + "\\SKILL.md") + "</b><br>" + esc(SK.msg) + "</span>" +
+    '<button class="btn" id="skSave" type="button">GRAVAR AGORA</button><button class="btn" id="skCopy" type="button">COPIAR</button>' +
+    '<button class="btn" id="skMd" type="button">⬇ .md</button><button class="btn" id="skZip" type="button">⬇ ZIP</button></div>' +
+    '<div class="warn">Atualiza-se sozinho sempre que o Second Brain muda. Para o Claude usar este contexto: <b>Claude → Definições → Capacidades → Skills → Carregar skill</b> e escolhe o ZIP. ' +
+    'No Claude do PC (Cowork/Claude Code), copia a pasta <b>skills\\' + SKILL_NAME + "</b> para <b>%USERPROFILE%\\.claude\\skills\\</b>. Tem dados pessoais: não a partilhes.</div>" +
+    '<pre id="skillPre">' + esc(md) + "</pre>";
+  $("#skSave").onclick = () => { SK.msg = "A gravar…"; renderSkill(); writeSkill(true); };
+  $("#skCopy").onclick = async () => { try { await navigator.clipboard.writeText(buildSkillMd()); showStatus("SKILL.md COPIADO", false, 2500); } catch (e) { showStatus("NÃO CONSEGUI COPIAR", true, 3000); } };
+  $("#skMd").onclick = () => dlBlob(new Blob([buildSkillMd()], { type: "text/markdown;charset=utf-8" }), "SKILL.md");
+  $("#skZip").onclick = () => dlBlob(zipStore([{ name: SKILL_NAME + "/SKILL.md", data: buildSkillMd() }]), SKILL_NAME + ".zip");
+}
 
 
 /* =====================================================================
@@ -3096,13 +3299,15 @@ document.addEventListener("keydown", e => {
    ARRANQUE
    ===================================================================== */
 refreshAntChip();
-renderAgenda(); renderEmails(); renderNews(); renderDigest(); renderLearn();
+renderAgenda(); renderEmails(); renderNews(); renderDigest(); renderLearn(); renderSkill();
 switchTab(LS.get("jarvis_tab") || "agenda");
 refreshHeader();
 applyAvatar();
 refreshVoiceChip();
 ping().then(async () => {
   await loadKeyFromFile();
+  writeSkill(true);
+  if (notes.some(n => (n.auto || []).length > SUM_AT)) scheduleSummary();
   loadAgenda(); loadEmails(true); loadNews(false);
 });
 setInterval(ping, 60000);

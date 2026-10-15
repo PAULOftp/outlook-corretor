@@ -5,6 +5,7 @@
 
   Escuta só em 127.0.0.1:4242. Rotas:
     GET  /api/ping          estado da antena e da ligação Microsoft 365
+    POST /api/skill         grava skills/contexto-paulo/SKILL.md (gerado pela página)
     GET  /proxy?url=...     ICS / RSS (allowlist: calendar.google.com, news.google.com, Outlook ICS)
     POST /emails            e-mails via IMAP, só leitura (EXAMINE + BODY.PEEK)
     GET  /api/ms/status     estado da sincronização Microsoft 365 (ficheiro m365.json)
@@ -323,11 +324,21 @@ function send(req, res, code, obj) {
   res.writeHead(code, { "Content-Type": "application/json; charset=utf-8", "Content-Length": body.length, "Cache-Control": "no-store" });
   res.end(body);
 }
+// SKILL.md gerado pela página: caminho fixo, só texto Markdown
+function writeSkill(conteudo) {
+  if (typeof conteudo !== "string" || !conteudo.startsWith("---")) return [400, { erro: "Conteúdo inválido" }];
+  if (conteudo.length > 300000) return [413, { erro: "SKILL.md demasiado grande" }];
+  const dir = path.join(__dirname, "skills", "contexto-paulo"), full = path.join(dir, "SKILL.md");
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(full + ".tmp", conteudo, "utf8");
+  fs.renameSync(full + ".tmp", full);
+  return [200, { ok: true, caminho: full, bytes: Buffer.byteLength(conteudo) }];
+}
 function readBody(req) {
   return new Promise((resolve, reject) => {
     const chunks = [];
     let size = 0;
-    req.on("data", c => { size += c.length; if (size > 65536) { reject(new Error("pedido demasiado grande")); req.destroy(); } else chunks.push(c); });
+    req.on("data", c => { size += c.length; if (size > 400000) { reject(new Error("pedido demasiado grande")); req.destroy(); } else chunks.push(c); });
     req.on("end", () => { try { resolve(JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}")); } catch (e) { reject(e); } });
     req.on("error", reject);
   });
@@ -364,7 +375,7 @@ const server = http.createServer(async (req, res) => {
   const u = new URL(req.url, "http://" + HOST + ":" + PORT);
   try {
     if (req.method === "GET") {
-      if (u.pathname === "/api/ping") return send(req, res, 200, { ok: true, versao: 3, ms: msState() });
+      if (u.pathname === "/api/ping") return send(req, res, 200, { ok: true, versao: 4, ms: msState() });
       if (u.pathname === "/api/chave") return send(req, res, ...readKeyFile());
       if (u.pathname === "/proxy") return await proxy(req, res, u.searchParams.get("url") || "");
       if (u.pathname === "/api/youtube") return send(req, res, ...(await youtubeSearch(u.searchParams.get("q"))));
@@ -380,6 +391,7 @@ const server = http.createServer(async (req, res) => {
         if (!IMAP_HOSTS.has(host)) return send(req, res, 403, { erro: "Servidor IMAP não autorizado: " + host });
         return send(req, res, ...(await imapFetch(host, data.usuario || "", data.senhaApp || "", data.quantidade)));
       }
+      if (u.pathname === "/api/skill") return send(req, res, ...writeSkill(data.conteudo));
     }
     return send(req, res, 404, { erro: "Rota desconhecida" });
   } catch (e) {

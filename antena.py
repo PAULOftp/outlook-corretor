@@ -11,6 +11,7 @@ Rotas:
   GET  /api/ms/status       -> estado da sincronização (ficheiro m365.json)
   GET  /api/ms/mail         -> e-mails Office 365 lidos do m365.json
   GET  /api/ms/calendar     -> agenda Outlook lida do m365.json
+  POST /api/skill           -> grava skills/contexto-paulo/SKILL.md (gerado pela página)
 """
 import base64
 import email
@@ -55,6 +56,24 @@ def say(msg):
 
 
 # ---------------------------------------------------------------- HTTP de saída
+SKILL_DIR = os.path.join(BASE, "skills", "contexto-paulo")
+
+
+def write_skill(conteudo):
+    """Grava o SKILL.md gerado pela página. Caminho fixo; só texto Markdown."""
+    if not isinstance(conteudo, str) or not conteudo.startswith("---"):
+        return 400, {"erro": "Conteúdo inválido"}
+    if len(conteudo) > 300000:
+        return 413, {"erro": "SKILL.md demasiado grande"}
+    os.makedirs(SKILL_DIR, exist_ok=True)
+    full = os.path.join(SKILL_DIR, "SKILL.md")
+    tmp = full + ".tmp"
+    with open(tmp, "w", encoding="utf-8", newline="\n") as f:
+        f.write(conteudo)
+    os.replace(tmp, full)
+    return 200, {"ok": True, "caminho": full, "bytes": len(conteudo.encode("utf-8"))}
+
+
 class _AllowlistRedirect(urllib.request.HTTPRedirectHandler):
     max_redirections = 3
 
@@ -339,7 +358,7 @@ class Antena(BaseHTTPRequestHandler):
 
     def _body(self):
         n = int(self.headers.get("Content-Length") or 0)
-        if n > 65536:
+        if n > 400000:
             raise ValueError("pedido demasiado grande")
         return json.loads(self.rfile.read(n).decode("utf-8") or "{}")
 
@@ -360,7 +379,7 @@ class Antena(BaseHTTPRequestHandler):
         q = urllib.parse.parse_qs(u.query)
         try:
             if u.path == "/api/ping":
-                return self._json(200, {"ok": True, "versao": 3, "ms": ms_state()})
+                return self._json(200, {"ok": True, "versao": 4, "ms": ms_state()})
             if u.path == "/api/chave":
                 return self._json(*read_key_file())
             if u.path == "/proxy":
@@ -390,6 +409,8 @@ class Antena(BaseHTTPRequestHandler):
                 if host not in IMAP_HOSTS:
                     return self._json(403, {"erro": "Servidor IMAP não autorizado: %s" % host})
                 return self._json(*imap_fetch(host, data.get("usuario", ""), data.get("senhaApp", ""), data.get("quantidade", 20)))
+            if path == "/api/skill":
+                return self._json(*write_skill(data.get("conteudo", "")))
             return self._json(404, {"erro": "Rota desconhecida"})
         except (socket.timeout, OSError) as e:
             return self._json(502, {"erro": "Sem ligação ao servidor de e-mail (%s)." % type(e).__name__})
