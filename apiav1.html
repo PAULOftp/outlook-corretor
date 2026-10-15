@@ -2308,7 +2308,7 @@ function msPrompt() {
     "2. Lê os eventos do meu calendário Outlook desde hoje às 00:00 até daqui a 8 dias.\n" +
     "3. Classifica cada e-mail num balde: \"acao\" (pede resposta, tarefa, decisão ou tem prazo; alguém está à minha espera. " + (cfg.mail.prioridade || "") + "), " +
     "\"info\" (vale a pena saber mas não exige nada) ou \"ruido\" (promoções, newsletters, notificações automáticas). Escreve um resumo de uma frase em português europeu.\n" +
-    "4. Grava o ficheiro m365.json na pasta da A.P.IAv1 (substitui o anterior), só com JSON válido e sem texto à volta, neste formato:\n" +
+    "4. Grava o ficheiro m365.json na pasta C:\\A.P.IAv1 (substitui o anterior), só com JSON válido e sem texto à volta, neste formato:\n" +
     '{"atualizado":"<agora, ISO 8601 com fuso>","conta":"<o meu e-mail>","emails":[{"id":"<internetMessageId>","remetente":"<nome>","email":"<endereço>","assunto":"...","data":"<ISO 8601>","trecho":"<até 300 caracteres do início do corpo>","lido":true,"balde":"acao","resumo":"..."}],' +
     '"eventos":[{"titulo":"...","inicio":"<ISO 8601 com fuso>","fim":"<ISO 8601 com fuso>","diaTodo":false,"local":"..."}]}\n' +
     "5. Acrescenta ao JSON o campo \"conhecimento\": até 5 factos duradouros e claros sobre a FTP Porto e o meu trabalho que aprendeste nesses e-mails (produtos e serviços, clientes, parceiros, concorrentes, colegas e funções, processos), " +
@@ -2345,7 +2345,7 @@ function openCfg() {
   <div class="cfg-sec"><h4>MICROSOFT 365 · E-MAIL E AGENDA DE TRABALHO (VIA CLAUDE)</h4>
     <ol class="howto">
       <li>Abre a <b>app Claude no PC</b> (a conta que já tem o conector <b>Microsoft 365</b> ligado). Não precisas de Azure nem de administrador.</li>
-      <li>Cria uma <b>tarefa agendada</b> (Cowork → Tarefas agendadas), com acesso à <b>pasta da A.P.IAv1</b> (ex.: C:\\Rissa), a repetir <b>de hora a hora</b> nos dias úteis.</li>
+      <li>Cria uma <b>tarefa agendada</b> (Cowork → Tarefas agendadas), com acesso à <b>pasta da A.P.IAv1</b> (C:\\A.P.IAv1), a repetir <b>de hora a hora</b> nos dias úteis.</li>
       <li>Clica <b>COPIAR PEDIDO</b> e cola-o como instrução da tarefa.</li>
       <li>Corre a tarefa uma vez: aparece o ficheiro <code>m365.json</code> na pasta e a A.P.IAv1 começa a usá-lo.</li>
     </ol>

@@ -10,7 +10,7 @@ O assistente chama-se **A.P.IAv1** e é chamado em voz alta com **"Olá IA"**. �
 - Responder em **português europeu**, num tom direto e colegial, sem preâmbulos nem elogios. Nível avançado.
 - O conteúdo da app e a voz também são em **pt-PT** (nunca pt-BR).
 - **Gravar sempre no GitHub**: cada alteração é um commit seguido de push. Ele também quer os ficheiros entregues na conversa (de preferência num ZIP).
-- Instalação no PC dele: pasta **`C:\Rissa`**, Windows, Chrome/Edge, Python instalado.
+- Instalação no PC dele: pasta **`C:\A.P.IAv1`**, Windows, Edge em modo aplicação, Python instalado. A tarefa agendada do Outlook corre na **outra conta Claude** (a que tem o conector Microsoft 365) e grava `C:\A.P.IAv1\m365.json`.
 
 ## Ficheiros
 | Ficheiro | Função |
